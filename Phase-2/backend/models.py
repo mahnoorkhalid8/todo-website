@@ -4,11 +4,6 @@ from datetime import datetime
 import uuid
 
 
-# Link table for many-to-many relationships if needed in the future
-class UserTaskLink(SQLModel, table=True):
-    user_id: str = Field(foreign_key="user.id", primary_key=True)
-    task_id: int = Field(foreign_key="task.id", primary_key=True)
-
 
 class User(SQLModel, table=True):
     """
