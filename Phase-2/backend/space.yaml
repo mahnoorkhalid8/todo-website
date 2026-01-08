@@ -1,0 +1,16 @@
+{
+  "title": "Todo Web Application",
+  "emoji": "✅",
+  "description": "A modern todo application with user authentication and task management with due dates.",
+  "app_file": "backend/main.py",
+  "models": [],
+  "tags": [
+    "todo",
+    "task management",
+    "fullstack",
+    "authentication",
+    "react",
+    "fastapi"
+  ],
+  "hardware": "cpu-basic"
+}

@@ -1,6 +1,10 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+<<<<<<< HEAD
+sqlmodel==0.0.8
+=======
 sqlmodel==0.0.14
+>>>>>>> 0da60863240558f9f100fb1f48c61cec926061b2
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
@@ -11,10 +15,13 @@ sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 httpx==0.25.2
+<<<<<<< HEAD
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
 black==23.11.0
 flake8==6.1.0
 mypy==1.7.1
+=======
+>>>>>>> 0da60863240558f9f100fb1f48c61cec926061b2
 gradio==4.14.0
