@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/cli.py
+src/main.py
+src/manager.py
+src/models.py
+todo_app.egg-info/PKG-INFO
+todo_app.egg-info/SOURCES.txt
+todo_app.egg-info/dependency_links.txt
+todo_app.egg-info/entry_points.txt
+todo_app.egg-info/requires.txt
+todo_app.egg-info/top_level.txt
