@@ -42,8 +42,8 @@ def create_user(session: Session, email: str, password: str, name: str = None) -
     )
 
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    # Note: Don't commit here - let the transaction be managed by the dependency injection system
+    # session.commit() is handled by the context manager in the dependency
 
     return db_user
 

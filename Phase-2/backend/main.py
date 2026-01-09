@@ -48,12 +48,6 @@ def create_app():
             content={"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}
         )
 
-    @app.exception_handler(500)
-    async def internal_error_handler(request: Request, exc):
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}
-        )
 
     @app.on_event("startup")
     def on_startup():
