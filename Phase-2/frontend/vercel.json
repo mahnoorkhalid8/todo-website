@@ -1,22 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next",
-      "config": {
-        "buildCommand": "npm run build",
-        "devCommand": "npm run dev"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
   "env": {
-    "NODE_ENV": "production"
+    "NEXT_PUBLIC_API_URL": "https://mahnoorkhalid8-todo-website.hf.space"
   }
 }
