@@ -51,10 +51,10 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    const headers: Record<string, string> = {
+    const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
-    };
+    } as Record<string, string>;
 
     // Add authorization header if token exists
     const token = this.getToken();
