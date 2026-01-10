@@ -63,7 +63,8 @@ export default function DashboardPage() {
       setLoading(true);
       const response = await api.getTasks();
       if (response.success) {
-        setTasks(response.data || []);
+        // The backend returns an array of tasks directly
+        setTasks(response.data as Task[] || []);
       } else {
         // Check if it's an unauthorized error
         if (response.error?.code === 'HTTP_401' || response.error?.message?.includes('Unauthorized')) {
@@ -446,7 +447,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ul className="space-y-4">
-              {tasks.map((task) => (
+              {(tasks || []).map((task) => (
                 <li key={task.id} className="transition-all duration-200">
                   {editingTaskId === task.id ? (
                     // Edit mode
