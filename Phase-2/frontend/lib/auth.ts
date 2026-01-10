@@ -97,7 +97,7 @@ class AuthUtils {
         }
       }
 
-      return { success: true, user: loginResponse.user || this.getUser() };
+      return { success: true, user: loginResponse.user || this.getUser() || undefined };
     } else {
       return { success: false, error: response.error?.message || 'Login failed' };
     }
