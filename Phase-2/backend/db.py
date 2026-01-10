@@ -15,7 +15,22 @@ except ImportError:
 
 def get_engine():
     """Get database engine with proper environment variable handling"""
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/todo_app")
+    # Import settings to use the same configuration as config.py
+    # Try multiple import strategies to handle different execution contexts
+    DATABASE_URL = None
+
+    # First try relative import (for when running as package)
+    try:
+        from .config import settings
+        DATABASE_URL = settings.DATABASE_URL
+    except (ImportError, AttributeError):
+        # Try absolute import (for when running directly)
+        try:
+            from config import settings
+            DATABASE_URL = settings.DATABASE_URL
+        except (ImportError, AttributeError):
+            # Fallback to environment variable if config import fails
+            DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/todo_app")
 
     # Adjust connection parameters for remote databases like Neon
     if "neon.tech" in DATABASE_URL:
