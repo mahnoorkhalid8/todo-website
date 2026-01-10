@@ -20,15 +20,23 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a plain password against a hashed password
+    Truncate password to 72 bytes if longer to avoid bcrypt limitations
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Bcrypt has a 72 byte password length limit
+    # Truncate the password to avoid ValueError
+    truncated_password = plain_password[:72] if len(plain_password) > 72 else plain_password
+    return pwd_context.verify(truncated_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
     """
     Hash a password
+    Truncate password to 72 bytes if longer to avoid bcrypt limitations
     """
-    return pwd_context.hash(password)
+    # Bcrypt has a 72 byte password length limit
+    # Truncate the password to avoid ValueError
+    truncated_password = password[:72] if len(password) > 72 else password
+    return pwd_context.hash(truncated_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
