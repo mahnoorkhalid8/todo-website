@@ -112,7 +112,7 @@ class ApiClient {
   }
 
   async logout() {
-    const result = this.request('/api/auth/logout', {
+    const result = await this.request('/api/auth/logout', {
       method: 'POST',
     });
 
