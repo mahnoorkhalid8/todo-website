@@ -73,15 +73,16 @@ class AuthUtils {
 
     if (response.success && response.data) {
       // Store the token (in access_token field)
-      this.setToken(response.data.access_token);
+      const loginResponse = response.data as { access_token: string; user?: User };
+      this.setToken(loginResponse.access_token);
 
       // Store user info (in user field if available)
-      if (response.data.user) {
-        this.setUser(response.data.user);
+      if (loginResponse.user) {
+        this.setUser(loginResponse.user);
       } else {
         // For login, we may need to fetch user info separately if not included
         // For now, we'll create a basic user object from the token
-        const token = response.data.access_token;
+        const token = loginResponse.access_token;
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
@@ -96,7 +97,7 @@ class AuthUtils {
         }
       }
 
-      return { success: true, user: response.data.user || this.getUser() };
+      return { success: true, user: loginResponse.user || this.getUser() };
     } else {
       return { success: false, error: response.error?.message || 'Login failed' };
     }
@@ -108,12 +109,13 @@ class AuthUtils {
 
     if (response.success && response.data) {
       // Store the token (now in access_token field)
-      this.setToken(response.data.access_token);
+      const registerResponse = response.data as { access_token: string; user: User };
+      this.setToken(registerResponse.access_token);
 
       // Store user info (now in user field)
-      this.setUser(response.data.user);
+      this.setUser(registerResponse.user);
 
-      return { success: true, user: response.data.user };
+      return { success: true, user: registerResponse.user };
     } else {
       return { success: false, error: response.error?.message || 'Registration failed' };
     }
