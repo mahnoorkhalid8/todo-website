@@ -13,8 +13,19 @@ except (ImportError, ValueError):
     from config import settings
 
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Import bcrypt directly to force proper initialization before passlib uses it
+import bcrypt
+
+# Configure bcrypt backend to avoid version issues
+try:
+    # Force bcrypt to be properly loaded before passlib tries to access version info
+    bcrypt.checkpw(b"test", bcrypt.hashpw(b"test", bcrypt.gensalt()))
+except Exception:
+    # If there's an issue with direct bcrypt usage, continue anyway
+    pass
+
+# Password hashing context with explicit bcrypt identifier
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
