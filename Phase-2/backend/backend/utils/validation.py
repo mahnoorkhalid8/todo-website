@@ -15,6 +15,10 @@ def validate_password(password: str) -> tuple[bool, Optional[str]]:
     Validate password complexity
     Returns (is_valid, error_message)
     """
+    # Check password length - bcrypt has a 72 byte limit
+    if len(password) > 72:
+        return False, "Password must not exceed 72 characters (bcrypt limitation)"
+
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
 

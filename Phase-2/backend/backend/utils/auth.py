@@ -3,6 +3,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
+import bcrypt
 
 # Handle imports for both local development and Hugging Face deployment
 try:
@@ -13,22 +14,50 @@ except (ImportError, ValueError):
     from config import settings
 
 
-# Password hashing context
+# Password hashing context - using a more compatible approach
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a plain password against a hashed password
+    Truncate password to 72 bytes if longer to avoid bcrypt limitations
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Bcrypt has a 72 byte password length limit
+    # Truncate the password to avoid ValueError
+    truncated_password = plain_password[:72] if len(plain_password) > 72 else plain_password
+    try:
+        return pwd_context.verify(truncated_password, hashed_password)
+    except ValueError as e:
+        if "password cannot be longer than 72 bytes" in str(e):
+            # This should not happen since we truncate, but handle as fallback
+            return False
+        raise e  # Re-raise if it's a different ValueError
+    except Exception:
+        # Handle any other bcrypt-related errors
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """
     Hash a password
+    Truncate password to 72 bytes if longer to avoid bcrypt limitations
     """
-    return pwd_context.hash(password)
+    # Bcrypt has a 72 byte password length limit
+    # Truncate the password to avoid ValueError
+    truncated_password = password[:72] if len(password) > 72 else password
+    try:
+        return pwd_context.hash(truncated_password)
+    except ValueError as e:
+        if "password cannot be longer than 72 bytes" in str(e):
+            # This should not happen since we truncate, but handle as fallback
+            truncated_further = truncated_password[:70]  # Extra safety margin
+            return pwd_context.hash(truncated_further)
+        raise e  # Re-raise if it's a different ValueError
+    except Exception:
+        # Handle any other bcrypt-related errors
+        truncated_safe = truncated_password[:70]  # Extra safety margin
+        return pwd_context.hash(truncated_safe)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

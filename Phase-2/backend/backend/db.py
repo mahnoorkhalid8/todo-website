@@ -6,23 +6,64 @@ import os
 # Handle imports for both local development and Hugging Face deployment
 try:
     # Try relative import first (works when running as a package)
-    from .models import User, Task  # Import all models to register them with SQLModel
+    from . import models  # Import the models module to register all models with SQLModel
 except ImportError:
     # Fall back to absolute import (works when running directly)
-    from models import User, Task  # Import all models to register them with SQLModel
+    import models  # Import the models module to register all models with SQLModel
 
-# Get database URL from environment, default to a local PostgreSQL database
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/todo_app")
+def get_engine():
+    """Get database engine with proper environment variable handling"""
+    # Import settings to use the same configuration as config.py
+    # Try multiple import strategies to handle different execution contexts
+    DATABASE_URL = None
+
+    # First try relative import (for when running as package)
+    try:
+        from .config import settings
+        DATABASE_URL = settings.DATABASE_URL
+    except (ImportError, AttributeError):
+        # Try absolute import (for when running directly)
+        try:
+            from config import settings
+            DATABASE_URL = settings.DATABASE_URL
+        except (ImportError, AttributeError):
+            # Fallback to environment variable if config import fails
+            DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/todo_app")
+
+    # Adjust connection parameters for remote databases like Neon
+    if "neon.tech" in DATABASE_URL:
+        # Special configuration for Neon database
+        return create_engine(
+            DATABASE_URL,
+            echo=False,  # Set to True to see SQL queries in logs
+            pool_pre_ping=True,
+            pool_size=2,  # Smaller pool for remote connections
+            max_overflow=5,  # Reduced overflow
+            pool_recycle=300,  # Recycle connections every 5 minutes
+            pool_timeout=30,  # 30 seconds timeout
+            pool_reset_on_return='commit',
+            connect_args={
+                "connect_timeout": 15,  # 15 second connection timeout
+                "keepalives_idle": 600,
+                "keepalives_interval": 30,
+                "keepalives_count": 3,
+                "sslmode": "require",
+            }
+        )
+    else:
+        # Standard configuration for local databases
+        return create_engine(
+            DATABASE_URL,
+            echo=False,  # Set to True to see SQL queries in logs
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+            pool_recycle=300,
+        )
+
 
 # Create the engine with connection pooling settings
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,  # Set to True to see SQL queries in logs
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-    pool_recycle=300,
-)
+engine = get_engine()
 
 
 def create_db_and_tables():

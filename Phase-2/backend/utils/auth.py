@@ -3,6 +3,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
+import bcrypt
 
 # Handle imports for both local development and Hugging Face deployment
 try:
@@ -13,19 +14,8 @@ except (ImportError, ValueError):
     from config import settings
 
 
-# Import bcrypt directly to force proper initialization before passlib uses it
-import bcrypt
-
-# Configure bcrypt backend to avoid version issues
-try:
-    # Force bcrypt to be properly loaded before passlib tries to access version info
-    bcrypt.checkpw(b"test", bcrypt.hashpw(b"test", bcrypt.gensalt()))
-except Exception:
-    # If there's an issue with direct bcrypt usage, continue anyway
-    pass
-
-# Password hashing context with explicit bcrypt identifier
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
+# Password hashing context - using a more compatible approach
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -36,7 +26,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     # Bcrypt has a 72 byte password length limit
     # Truncate the password to avoid ValueError
     truncated_password = plain_password[:72] if len(plain_password) > 72 else plain_password
-    return pwd_context.verify(truncated_password, hashed_password)
+    try:
+        return pwd_context.verify(truncated_password, hashed_password)
+    except ValueError as e:
+        if "password cannot be longer than 72 bytes" in str(e):
+            # This should not happen since we truncate, but handle as fallback
+            return False
+        raise e  # Re-raise if it's a different ValueError
+    except Exception:
+        # Handle any other bcrypt-related errors
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -47,7 +46,18 @@ def get_password_hash(password: str) -> str:
     # Bcrypt has a 72 byte password length limit
     # Truncate the password to avoid ValueError
     truncated_password = password[:72] if len(password) > 72 else password
-    return pwd_context.hash(truncated_password)
+    try:
+        return pwd_context.hash(truncated_password)
+    except ValueError as e:
+        if "password cannot be longer than 72 bytes" in str(e):
+            # This should not happen since we truncate, but handle as fallback
+            truncated_further = truncated_password[:70]  # Extra safety margin
+            return pwd_context.hash(truncated_further)
+        raise e  # Re-raise if it's a different ValueError
+    except Exception:
+        # Handle any other bcrypt-related errors
+        truncated_safe = truncated_password[:70]  # Extra safety margin
+        return pwd_context.hash(truncated_safe)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
