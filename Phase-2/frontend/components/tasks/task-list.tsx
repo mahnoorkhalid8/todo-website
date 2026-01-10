@@ -32,7 +32,7 @@ export default function TaskList({ status = 'all', onTaskUpdate }: TaskListProps
       setLoading(true);
       const response = await api.getTasks(status);
       if (response.success) {
-        setTasks(response.data || []);
+        setTasks(response.data as Task[] || []);
       } else {
         setError(response.error?.message || 'Failed to load tasks');
       }
