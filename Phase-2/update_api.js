@@ -1,4 +1,7 @@
-// API client for the Todo Web Application
+// First, let's make sure we have the complete fixed file
+const fs = require('fs');
+
+const apiContent = `// API client for the Todo Web Application
 // Centralized error handling and request management
 
 interface ApiResponse<T> {
@@ -49,7 +52,7 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = \`\${this.baseUrl}\${endpoint}\`;
 
     const headers = {
       'Content-Type': 'application/json',
@@ -59,7 +62,7 @@ class ApiClient {
     // Add authorization header if token exists
     const token = this.getToken();
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers['Authorization'] = \`Bearer \${token}\`;
     }
 
     try {
@@ -74,7 +77,7 @@ class ApiClient {
         return {
           success: false,
           error: {
-            code: `HTTP_${response.status}`,
+            code: \`HTTP_\${response.status}\`,
             message: data.message || response.statusText,
             details: data.details || null,
           },
@@ -146,7 +149,7 @@ class ApiClient {
       limit: limit.toString(),
     });
 
-    return this.request(`/api/tasks?${params}`);
+    return this.request(\`/api/tasks?\${params}\`);
   }
 
   async createTask(title: string, description?: string, dueDate?: string) {
@@ -157,24 +160,24 @@ class ApiClient {
   }
 
   async getTask(id: number) {
-    return this.request(`/api/tasks/${id}`);
+    return this.request(\`/api/tasks/\${id}\`);
   }
 
   async updateTask(id: number, title?: string, description?: string, dueDate?: string) {
-    return this.request(`/api/tasks/${id}`, {
+    return this.request(\`/api/tasks/\${id}\`, {
       method: 'PUT',
       body: JSON.stringify({ title, description, due_date: dueDate }),
     });
   }
 
   async deleteTask(id: number) {
-    return this.request(`/api/tasks/${id}`, {
+    return this.request(\`/api/tasks/\${id}\`, {
       method: 'DELETE',
     });
   }
 
   async toggleTaskCompletion(id: number, completed: boolean) {
-    return this.request(`/api/tasks/${id}/complete`, {
+    return this.request(\`/api/tasks/\${id}/complete\`, {
       method: 'PATCH',
       body: JSON.stringify({ completed }),
     });
@@ -182,4 +185,7 @@ class ApiClient {
 }
 
 // Export a singleton instance
-export const api = new ApiClient();
+export const api = new ApiClient();`;
+
+fs.writeFileSync('C:\\Users\\SEVEN86 COMPUTES\\todo-app\\Phase-2\\frontend\\lib\\api.ts', apiContent);
+console.log('API client file has been updated with proper token storage!');
