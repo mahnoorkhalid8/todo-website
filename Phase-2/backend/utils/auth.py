@@ -14,80 +14,48 @@ except (ImportError, ValueError):
     from config import settings
 
 
-# Password hashing context - basic configuration to avoid problematic initialization
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__ident="2b",
-    bcrypt__rounds=12
-)
+# Simple password hashing using bcrypt directly to avoid backend initialization issues
+import bcrypt
 
+def get_password_hash(password: str) -> str:
+    """
+    Hash a password using bcrypt directly
+    Truncate password to 72 bytes if longer to avoid bcrypt limitations
+    """
+    # Bcrypt has a 72 byte password length limit
+    # Truncate the password to avoid ValueError
+    truncated_password = password[:72] if len(password) > 72 else password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(truncated_password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verify a plain password against a hashed password
+    Verify a plain password against a hashed password using bcrypt directly
     Truncate password to 72 bytes if longer to avoid bcrypt limitations
     """
     # Bcrypt has a 72 byte password length limit
     # Truncate the password to avoid ValueError
     truncated_password = plain_password[:72] if len(plain_password) > 72 else plain_password
     try:
-        return pwd_context.verify(truncated_password, hashed_password)
-    except ValueError as e:
-        if "password cannot be longer than 72 bytes" in str(e):
-            # This should not happen since we truncate, but handle as fallback
-            return False
-        raise e  # Re-raise if it's a different ValueError
+        return bcrypt.checkpw(truncated_password.encode('utf-8'), hashed_password.encode('utf-8'))
     except Exception:
-        # Handle any other bcrypt-related errors
+        # If verification fails for any reason, return False
         return False
 
+# Define pwd_context as a dummy to avoid errors in existing code
+class DummyPwdContext:
+    def hash(self, password):
+        return get_password_hash(password)
 
-def get_password_hash(password: str) -> str:
-    """
-    Hash a password
-    Truncate password to 72 bytes if longer to avoid bcrypt limitations
-    """
-    # Bcrypt has a 72 byte password length limit
-    # Truncate the password to avoid ValueError
-    truncated_password = password[:72] if len(password) > 72 else password
+    def verify(self, password, hashed):
+        return verify_password(password, hashed)
 
-    # Try multiple approaches to handle bcrypt backend initialization issues
-    # including the detect_wrap_bug issue that happens during backend setup
-    try:
-        return pwd_context.hash(truncated_password)
-    except ValueError as e:
-        if "password cannot be longer than 72 bytes" in str(e):
-            # This should not happen since we truncate, but handle as fallback
-            truncated_further = truncated_password[:65]  # Extra safety margin
-            try:
-                return pwd_context.hash(truncated_further)
-            except ValueError:
-                # If still getting ValueError, use even shorter
-                truncated_extra = truncated_further[:50]
-                try:
-                    return pwd_context.hash(truncated_extra)
-                except:
-                    # Ultimate fallback - return a secure hash of a safe password
-                    import hashlib
-                    import secrets
-                    salt = secrets.token_hex(16)
-                    fallback_hash = hashlib.sha256((truncated_extra + salt).encode()).hexdigest()
-                    # This is not ideal but prevents crashes - in production you'd want proper bcrypt
-                    return f"$2b$12${fallback_hash[:53]}"
-        raise e  # Re-raise if it's a different ValueError
-    except Exception as e:
-        # Handle any other bcrypt-related errors including backend initialization
-        truncated_safe = truncated_password[:60]  # Extra safety margin
-        try:
-            return pwd_context.hash(truncated_safe)
-        except:
-            # Ultimate fallback to prevent crashes
-            import hashlib
-            import secrets
-            salt = secrets.token_hex(16)
-            fallback_hash = hashlib.sha256((truncated_safe + salt).encode()).hexdigest()
-            return f"$2b$12${fallback_hash[:53]}"
+pwd_context = DummyPwdContext()
+
+
+
+
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -127,11 +95,3 @@ def verify_token(token: str) -> dict:
         )
 
 
-def authenticate_user(email: str, password: str) -> bool:
-    """
-    Authenticate a user by verifying email and password
-    This is a placeholder - actual implementation will depend on database access
-    """
-    # This function would need database access to check user credentials
-    # Implementation will be in the auth service
-    pass
