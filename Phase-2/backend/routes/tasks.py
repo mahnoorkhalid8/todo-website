@@ -37,7 +37,7 @@ def get_tasks(
 
 
 @router.post("/")
-def create_task(task, current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+def create_task(task: "TaskCreate", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
     # Import everything inside the function to avoid early initialization
     try:
         from ..dependencies.database import get_db_session
@@ -108,7 +108,7 @@ def get_task(task_id: int, current_user = Depends(lambda: None), session: Sessio
 
 
 @router.put("/{task_id}")
-def update_task(task_id: int, task_update, current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+def update_task(task_id: int, task_update: "TaskUpdate", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
     # Import everything inside the function to avoid early initialization
     try:
         from ..dependencies.database import get_db_session
@@ -176,7 +176,7 @@ def delete_task(task_id: int, current_user = Depends(lambda: None), session: Ses
 
 
 @router.patch("/{task_id}/complete")
-def toggle_task_completion(task_id: int, completion_data, current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+def toggle_task_completion(task_id: int, completion_data: "TaskToggleComplete", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
     # Import everything inside the function to avoid early initialization
     try:
         from ..dependencies.database import get_db_session

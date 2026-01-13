@@ -6,7 +6,7 @@ router = APIRouter()
 
 
 @router.post("/register")
-def register(user, session: Session = Depends(lambda: None)):
+def register(user, session: Session = Depends()):
     # Import everything inside the function to avoid early initialization
     try:
         from ..dependencies.database import get_db_session
@@ -16,71 +16,19 @@ def register(user, session: Session = Depends(lambda: None)):
         from ..utils.validation import validate_email, validate_password
         from ..models import User
 
-        # Get the actual database session
-        from ..db import get_session
-        with get_session() as actual_session:
-            session = actual_session  # Use the actual session
+        # Validate the request body using the Pydantic model
+        validated_user = UserCreate.model_validate(user)
 
-            # Validate email format
-            validated_user = UserCreate(**user)  # Validate the input
-            if not validate_email(validated_user.email):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid email format"
-                )
-
-            # Create user using the service
-            print(f"About to call create_user with email: {validated_user.email}")
-            db_user = create_user(session, validated_user.email, validated_user.password, validated_user.name)
-            print(f"Created user: {db_user}")
-
-            # Create access token for the new user
-            access_token_expires = timedelta(minutes=30)  # Use appropriate expiration
-            access_token = create_access_token(
-                data={"sub": db_user.id, "email": db_user.email},
-                expires_delta=access_token_expires
+        # Validate email format
+        if not validate_email(validated_user.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email format"
             )
-            print(f"Created access token: {access_token[:20]}...")
 
-            # Return token and user info
-            user_response = UserResponse(
-                id=str(db_user.id),  # Convert to string to ensure compatibility
-                email=db_user.email,
-                name=db_user.name
-            )
-            print(f"Created user response: {user_response}")
-
-            return {
-                "access_token": access_token,
-                "token_type": "bearer",
-                "user": user_response
-            }
-    except ValueError as e:
-        print(f"ValueError in register: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        print(f"General error in register: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
-        )
-
-    # Validate email format
-    if not validate_email(user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid email format"
-        )
-
-    try:
         # Create user using the service
-        print(f"About to call create_user with email: {user.email}")
-        db_user = create_user(session, user.email, user.password, user.name)
+        print(f"About to call create_user with email: {validated_user.email}")
+        db_user = create_user(session, validated_user.email, validated_user.password, validated_user.name)
         print(f"Created user: {db_user}")
 
         # Create access token for the new user
@@ -121,7 +69,7 @@ def register(user, session: Session = Depends(lambda: None)):
 
 
 @router.post("/login")
-def login(user_credentials: "UserLogin", session: Session = Depends(lambda: None)):
+def login(user_credentials, session: Session = Depends()):
     # Import everything inside the function to avoid early initialization
     try:
         from ..dependencies.database import get_db_session
@@ -129,6 +77,9 @@ def login(user_credentials: "UserLogin", session: Session = Depends(lambda: None
         from ..utils.auth import create_access_token
         from ..services.auth_service import authenticate_user
         from ..models import User
+
+        # Validate the request body using the Pydantic model
+        validated_credentials = UserLogin.model_validate(user_credentials)
     except (ImportError, ValueError):
         from dependencies.database import get_db_session
         from schemas.auth import UserLogin, Token, UserResponse
@@ -136,7 +87,10 @@ def login(user_credentials: "UserLogin", session: Session = Depends(lambda: None
         from services.auth_service import authenticate_user
         from models import User
 
-    user = authenticate_user(session, user_credentials.email, user_credentials.password)
+        # Validate the request body using the Pydantic model
+        validated_credentials = UserLogin.model_validate(user_credentials)
+
+    user = authenticate_user(session, validated_credentials.email, validated_credentials.password)
 
     if not user:
         raise HTTPException(
@@ -189,9 +143,9 @@ try:
 
     # Update the routes to have proper response models
     for route in router.routes:
-        if route.path == "/register" and route.methods == {"POST"}:
+        if route.path == "/register" and hasattr(route, 'methods') and "POST" in route.methods:
             route.response_model = Token
-        elif route.path == "/login" and route.methods == {"POST"}:
+        elif route.path == "/login" and hasattr(route, 'methods') and "POST" in route.methods:
             route.response_model = Token
 except:
     # If type annotation fails, continue without it
