@@ -33,5 +33,5 @@ class Task(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationship to user
-    user: User = Relationship(back_populates="tasks")
+    # Relationship to user - configured to avoid serialization issues
+    user: Optional[User] = Relationship(back_populates="tasks", sa_relationship_kwargs={"lazy": "noload"})

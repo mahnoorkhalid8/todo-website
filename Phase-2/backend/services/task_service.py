@@ -39,7 +39,12 @@ def create_task(session: Session, user_id: str, title: str, description: Optiona
 
     session.add(db_task)
     session.commit()
+    # Refresh to load the task with its ID after commit
     session.refresh(db_task)
+
+    # Ensure all required fields are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    _ = db_task.id, db_task.title, db_task.description, db_task.completed, db_task.user_id, db_task.created_at, db_task.updated_at, db_task.due_date
 
     return db_task
 
@@ -68,6 +73,12 @@ def get_tasks(session: Session, user_id: str, status: str = "all", sort: str = "
     query = query.offset(offset).limit(limit)
 
     tasks = session.exec(query).all()
+
+    # Ensure all required fields are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    for task in tasks:
+        _ = task.id, task.title, task.description, task.completed, task.user_id, task.created_at, task.updated_at, task.due_date
+
     return tasks
 
 
@@ -77,6 +88,9 @@ def get_task_by_id(session: Session, task_id: int, user_id: str) -> Task | None:
     """
     task = session.get(Task, task_id)
     if task and task.user_id == user_id:
+        # Ensure all required fields are loaded before session closes
+        # Access all attributes that will be needed for serialization
+        _ = task.id, task.title, task.description, task.completed, task.user_id, task.created_at, task.updated_at, task.due_date
         return task
     return None
 
@@ -115,6 +129,10 @@ def update_task(session: Session, task_id: int, user_id: str, title: Optional[st
     session.commit()
     session.refresh(task)
 
+    # Ensure all required fields are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    _ = task.id, task.title, task.description, task.completed, task.user_id, task.created_at, task.updated_at, task.due_date
+
     return task
 
 
@@ -133,6 +151,10 @@ def toggle_task_completion(session: Session, task_id: int, user_id: str, complet
     session.add(task)
     session.commit()
     session.refresh(task)
+
+    # Ensure all required fields are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    _ = task.id, task.title, task.description, task.completed, task.user_id, task.created_at, task.updated_at, task.due_date
 
     return task
 

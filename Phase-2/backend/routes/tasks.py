@@ -47,6 +47,11 @@ def create_task(
     try:
         # Create new task using the service
         db_task = create_task_service(session, current_user.id, task.title, task.description, task.due_date)
+
+        # Ensure all attributes are loaded before session closes
+        # Access all attributes that will be needed for serialization
+        _ = db_task.id, db_task.title, db_task.description, db_task.completed, db_task.user_id, db_task.created_at, db_task.updated_at, db_task.due_date
+
         return db_task
     except ValueError as e:
         raise HTTPException(
@@ -71,6 +76,10 @@ def get_task(
             detail="Task not found"
         )
 
+    # Ensure all attributes are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    _ = task.id, task.title, task.description, task.completed, task.user_id, task.created_at, task.updated_at, task.due_date
+
     return task
 
 
@@ -91,6 +100,10 @@ def update_task(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found"
             )
+
+        # Ensure all attributes are loaded before session closes
+        # Access all attributes that will be needed for serialization
+        _ = updated_task.id, updated_task.title, updated_task.description, updated_task.completed, updated_task.user_id, updated_task.created_at, updated_task.updated_at, updated_task.due_date
 
         return updated_task
     except ValueError as e:
@@ -135,5 +148,9 @@ def toggle_task_completion(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found"
         )
+
+    # Ensure all attributes are loaded before session closes
+    # Access all attributes that will be needed for serialization
+    _ = updated_task.id, updated_task.title, updated_task.description, updated_task.completed, updated_task.user_id, updated_task.created_at, updated_task.updated_at, updated_task.due_date
 
     return updated_task

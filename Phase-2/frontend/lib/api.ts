@@ -30,9 +30,15 @@ class ApiClient {
 
   // Get authentication token
   getToken(): string | null {
+    // First try to get from localStorage (client-side)
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        return token;
+      }
     }
+
+    // Fallback to instance variable
     return this.token;
   }
 
@@ -51,10 +57,10 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers,
-    } as Record<string, string>;
+    };
 
     // Add authorization header if token exists
     const token = this.getToken();
@@ -68,15 +74,35 @@ class ApiClient {
         headers,
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If response is not JSON, return a generic error
+        if (!response.ok) {
+          return {
+            success: false,
+            error: {
+              code: `HTTP_${response.status}`,
+              message: `HTTP Error ${response.status}`,
+              details: null,
+            },
+          };
+        }
+        // If it's a successful non-JSON response, return success
+        return {
+          success: true,
+          data: null,
+        };
+      }
 
       if (!response.ok) {
         return {
           success: false,
           error: {
             code: `HTTP_${response.status}`,
-            message: data.message || response.statusText,
-            details: data.details || null,
+            message: data?.message || response.statusText,
+            details: data?.details || null,
           },
         };
       }

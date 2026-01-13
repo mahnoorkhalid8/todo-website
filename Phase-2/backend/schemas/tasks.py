@@ -35,6 +35,8 @@ class TaskInDB(TaskBase):
 
     class Config:
         from_attributes = True
+        # Exclude relationships to prevent loading issues
+        arbitrary_types_allowed = True
 
 
 class TaskResponse(TaskInDB):
