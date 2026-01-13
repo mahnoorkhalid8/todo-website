@@ -182,8 +182,8 @@ class ApiClient {
   }
 
   // Authentication methods
-  async register(email: string, password: string, name?: string) {
-    const response = await this.request<TokenResponse>('/api/auth/register', {
+  async register(email: string, password: string, name?: string): Promise<ApiResponse<TokenResponse>> {
+    const response: ApiResponse<TokenResponse> = await this.request<TokenResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     });
@@ -196,8 +196,8 @@ class ApiClient {
     return response;
   }
 
-  async login(email: string, password: string) {
-    const response = await this.request<TokenResponse>('/api/auth/login', {
+  async login(email: string, password: string): Promise<ApiResponse<TokenResponse>> {
+    const response: ApiResponse<TokenResponse> = await this.request<TokenResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -210,8 +210,8 @@ class ApiClient {
     return response;
   }
 
-  async logout() {
-    const result = await this.request('/api/auth/logout', {
+  async logout(): Promise<ApiResponse<any>> {
+    const result: ApiResponse<any> = await this.request('/api/auth/logout', {
       method: 'POST',
     });
 
@@ -223,7 +223,7 @@ class ApiClient {
   }
 
   // Task methods
-  async getTasks(status: string = 'all', sort: string = 'created', page: number = 1, limit: number = 10) {
+  async getTasks(status: string = 'all', sort: string = 'created', page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
     const params = new URLSearchParams({
       status,
       sort,
@@ -234,32 +234,32 @@ class ApiClient {
     return this.request(`/api/tasks?${params}`);
   }
 
-  async createTask(title: string, description?: string, dueDate?: string) {
-    return this.request('/api/tasks', {
+  async createTask(title: string, description?: string, dueDate?: string): Promise<ApiResponse<TaskResponse>> {
+    return this.request<TaskResponse>('/api/tasks', {
       method: 'POST',
       body: JSON.stringify({ title, description, due_date: dueDate }),
     });
   }
 
-  async getTask(id: number) {
-    return this.request(`/api/tasks/${id}`);
+  async getTask(id: number): Promise<ApiResponse<TaskResponse>> {
+    return this.request<TaskResponse>(`/api/tasks/${id}`);
   }
 
-  async updateTask(id: number, title?: string, description?: string, dueDate?: string) {
-    return this.request(`/api/tasks/${id}`, {
+  async updateTask(id: number, title?: string, description?: string, dueDate?: string): Promise<ApiResponse<TaskResponse>> {
+    return this.request<TaskResponse>(`/api/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ title, description, due_date: dueDate }),
     });
   }
 
-  async deleteTask(id: number) {
+  async deleteTask(id: number): Promise<ApiResponse<any>> {
     return this.request(`/api/tasks/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async toggleTaskCompletion(id: number, completed: boolean) {
-    return this.request(`/api/tasks/${id}/complete`, {
+  async toggleTaskCompletion(id: number, completed: boolean): Promise<ApiResponse<TaskResponse>> {
+    return this.request<TaskResponse>(`/api/tasks/${id}/complete`, {
       method: 'PATCH',
       body: JSON.stringify({ completed }),
     });
