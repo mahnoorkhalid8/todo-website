@@ -130,7 +130,7 @@ class ApiClient {
         // If it's a successful non-JSON response, return success
         return {
           success: true,
-          data: null,
+          data: undefined,
         };
       }
 
