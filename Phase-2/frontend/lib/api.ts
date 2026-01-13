@@ -57,10 +57,32 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    // Build headers safely to avoid type conflicts
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
+
+    // Copy headers from options if they exist
+    if (options.headers) {
+      const optionHeaders = options.headers;
+      if (optionHeaders instanceof Headers) {
+        optionHeaders.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (Array.isArray(optionHeaders)) {
+        optionHeaders.forEach(([key, value]) => {
+          if (typeof key === 'string' && typeof value === 'string') {
+            headers[key] = value;
+          }
+        });
+      } else if (typeof optionHeaders === 'object') {
+        Object.entries(optionHeaders).forEach(([key, value]) => {
+          if (typeof key === 'string' && typeof value === 'string') {
+            headers[key] = value;
+          }
+        });
+      }
+    }
 
     // Add authorization header if token exists
     const token = this.getToken();
@@ -69,10 +91,26 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      // Construct fetch options to avoid type conflicts
+      const fetchOptions: RequestInit = {};
+
+      // Copy allowed properties from options individually to avoid type issues
+      if (options.method) fetchOptions.method = options.method;
+      if (options.body) fetchOptions.body = options.body;
+      if (options.mode) fetchOptions.mode = options.mode;
+      if (options.cache) fetchOptions.cache = options.cache;
+      if (options.credentials) fetchOptions.credentials = options.credentials;
+      if (options.redirect) fetchOptions.redirect = options.redirect;
+      if (options.referrer) fetchOptions.referrer = options.referrer;
+      if (options.integrity) fetchOptions.integrity = options.integrity;
+      if (options.keepalive) fetchOptions.keepalive = options.keepalive;
+      if (options.signal) fetchOptions.signal = options.signal;
+      if (options.referrerPolicy) fetchOptions.referrerPolicy = options.referrerPolicy;
+
+      // Always use our computed headers
+      fetchOptions.headers = headers;
+
+      const response = await fetch(url, fetchOptions);
 
       let data;
       try {

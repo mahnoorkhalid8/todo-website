@@ -10,13 +10,11 @@ def create_app():
         version="1.0.0"
     )
 
+    # Add CORS middleware
     # Handle imports for both local development and Hugging Face deployment
-    # This approach handles different ways the module can be imported
     try:
         # Try relative imports first (works when running as a package)
         from .config import settings
-        from .db import create_db_and_tables
-        from .routes import auth, tasks
     except ImportError:
         # Fall back to absolute imports (works when running directly)
         import sys
@@ -24,10 +22,7 @@ def create_app():
         # Add the backend directory to the path
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from config import settings
-        from db import create_db_and_tables
-        from routes import auth, tasks
 
-    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
@@ -35,6 +30,20 @@ def create_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Import and include routers after middleware setup
+    # This helps avoid circular imports and early model loading
+    try:
+        # Try relative imports first (works when running as a package)
+        from .db import create_db_and_tables
+        from .routes import auth, tasks
+    except ImportError:
+        # Fall back to absolute imports (works when running directly)
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from db import create_db_and_tables
+        from routes import auth, tasks
 
     # Include routers
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

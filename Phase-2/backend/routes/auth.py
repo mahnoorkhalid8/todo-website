@@ -1,30 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from datetime import timedelta
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative imports first (works when running as a package)
-    from ..dependencies.database import get_db_session
-    from ..models import User
-    from ..schemas.auth import UserCreate, UserLogin, Token, UserResponse
-    from ..utils.auth import create_access_token
-    from ..services.auth_service import create_user, authenticate_user
-    from ..utils.validation import validate_email, validate_password
-except (ImportError, ValueError):
-    # Fall back to absolute imports (works when running directly)
-    from dependencies.database import get_db_session
-    from models import User
-    from schemas.auth import UserCreate, UserLogin, Token, UserResponse
-    from utils.auth import create_access_token
-    from services.auth_service import create_user, authenticate_user
-    from utils.validation import validate_email, validate_password
-
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=Token)
-def register(user: UserCreate, session: Session = Depends(get_db_session)):
+@router.post("/register")
+def register(user, session: Session = Depends(lambda: None)):
+    # Import everything inside the function to avoid early initialization
+    try:
+        from ..dependencies.database import get_db_session
+        from ..schemas.auth import UserCreate, Token, UserResponse
+        from ..utils.auth import create_access_token
+        from ..services.auth_service import create_user, authenticate_user
+        from ..utils.validation import validate_email, validate_password
+        from ..models import User
+    except (ImportError, ValueError):
+        from dependencies.database import get_db_session
+        from schemas.auth import UserCreate, Token, UserResponse
+        from utils.auth import create_access_token
+        from services.auth_service import create_user, authenticate_user
+        from utils.validation import validate_email, validate_password
+        from models import User
+
     # Validate email format
     if not validate_email(user.email):
         raise HTTPException(
@@ -75,8 +73,22 @@ def register(user: UserCreate, session: Session = Depends(get_db_session)):
         )
 
 
-@router.post("/login", response_model=Token)
-def login(user_credentials: UserLogin, session: Session = Depends(get_db_session)):
+@router.post("/login")
+def login(user_credentials, session: Session = Depends(lambda: None)):
+    # Import everything inside the function to avoid early initialization
+    try:
+        from ..dependencies.database import get_db_session
+        from ..schemas.auth import UserLogin, Token, UserResponse
+        from ..utils.auth import create_access_token
+        from ..services.auth_service import authenticate_user
+        from ..models import User
+    except (ImportError, ValueError):
+        from dependencies.database import get_db_session
+        from schemas.auth import UserLogin, Token, UserResponse
+        from utils.auth import create_access_token
+        from services.auth_service import authenticate_user
+        from models import User
+
     user = authenticate_user(session, user_credentials.email, user_credentials.password)
 
     if not user:
@@ -94,7 +106,6 @@ def login(user_credentials: UserLogin, session: Session = Depends(get_db_session
     )
 
     # Create user response with proper handling of optional name
-    # Try to create the UserResponse and handle potential errors
     try:
         user_response = UserResponse(
             id=str(user.id),
@@ -117,3 +128,24 @@ def logout():
     # In a stateless JWT system, logout is typically handled on the client side
     # This endpoint could be used for additional server-side operations if needed
     return {"success": True, "message": "Logged out successfully"}
+
+
+# Update response models after imports are resolved
+try:
+    from ..schemas.auth import UserCreate, UserLogin, Token
+    from ..dependencies.database import get_db_session
+
+    # Apply type annotations
+    from typing import cast
+    register.__annotations__ = {'user': UserCreate, 'session': Session, 'return': Token}
+    login.__annotations__ = {'user_credentials': UserLogin, 'session': Session, 'return': Token}
+
+    # Update the routes to have proper response models
+    for route in router.routes:
+        if route.path == "/register" and route.methods == {"POST"}:
+            route.response_model = Token
+        elif route.path == "/login" and route.methods == {"POST"}:
+            route.response_model = Token
+except:
+    # If type annotation fails, continue without it
+    pass
