@@ -3,30 +3,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 
-# Handle imports for both local development and Hugging Face deployment
-# This approach handles different ways the module can be imported
-try:
-    # Try relative imports first (works when running as a package)
-    from .db import create_db_and_tables
-    from .routes import auth, tasks
-    from .config import settings
-except ImportError:
-    # Fall back to absolute imports (works when running directly)
-    import sys
-    import os
-    # Add the backend directory to the path
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from db import create_db_and_tables
-    from routes import auth, tasks
-    from config import settings
-
-
 def create_app():
     app = FastAPI(
         title="Todo Web Application API",
         description="API for the Todo Web Application with user authentication and task management",
         version="1.0.0"
     )
+
+    # Handle imports for both local development and Hugging Face deployment
+    # This approach handles different ways the module can be imported
+    try:
+        # Try relative imports first (works when running as a package)
+        from .config import settings
+        from .db import create_db_and_tables
+        from .routes import auth, tasks
+    except ImportError:
+        # Fall back to absolute imports (works when running directly)
+        import sys
+        import os
+        # Add the backend directory to the path
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from config import settings
+        from db import create_db_and_tables
+        from routes import auth, tasks
 
     # Add CORS middleware
     app.add_middleware(

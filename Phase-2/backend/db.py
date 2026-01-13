@@ -3,16 +3,6 @@ from contextlib import contextmanager
 from typing import Generator
 import os
 
-# Import models to register them with SQLModel
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative import first (works when running as a package)
-    from . import models  # Import the models module to register all models with SQLModel
-except ImportError:
-    # Fall back to absolute import (works when running directly)
-    import models  # Import the models module to register all models with SQLModel
-
-
 def get_engine():
     """Get database engine with proper environment variable handling"""
     # Import settings to use the same configuration as config.py
@@ -69,13 +59,17 @@ def create_db_and_tables():
     Create database tables if they don't exist
     This should be called on application startup
     """
+    # Import models to register them with SQLModel
+    # Handle imports for both local development and Hugging Face deployment
+    try:
+        # Try relative import first (works when running as a package)
+        from . import models  # Import the models module to register all models with SQLModel
+    except ImportError:
+        # Fall back to absolute import (works when running directly)
+        import models  # Import the models module to register all models with SQLModel
+
     # Create engine dynamically to respect current environment
     engine = get_engine()
-    # Ensure models are imported to register with SQLModel
-    try:
-        from . import models
-    except ImportError:
-        import models
     SQLModel.metadata.create_all(bind=engine)
 
 

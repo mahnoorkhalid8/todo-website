@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import { useToast } from '../../components/ui/toast-context';
 
 interface TaskToggleProps {
   taskId: number;
@@ -10,6 +11,7 @@ interface TaskToggleProps {
 export default function TaskToggle({ taskId, currentStatus, onStatusChanged }: TaskToggleProps) {
   const [status, setStatus] = useState(currentStatus);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const toggleStatus = async () => {
     setLoading(true);
@@ -18,9 +20,14 @@ export default function TaskToggle({ taskId, currentStatus, onStatusChanged }: T
       if (response.success) {
         setStatus(!status);
         onStatusChanged();
+        const message = !status ? 'Task marked as complete!' : 'Task marked as incomplete!';
+        showToast(message, 'success');
+      } else {
+        showToast('Failed to update task status', 'error');
       }
     } catch (err) {
       console.error('Error toggling task completion:', err);
+      showToast('An error occurred while updating task status', 'error');
     } finally {
       setLoading(false);
     }

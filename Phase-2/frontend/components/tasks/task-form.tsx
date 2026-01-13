@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import { useToast } from '../../components/ui/toast-context';
 
 interface TaskFormProps {
   onTaskCreated: () => void;
@@ -9,8 +10,10 @@ interface TaskFormProps {
 export default function TaskForm({ onTaskCreated, onCancel }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,16 +26,20 @@ export default function TaskForm({ onTaskCreated, onCancel }: TaskFormProps) {
     setError('');
 
     try {
-      const response = await api.createTask(title, description);
+      const response = await api.createTask(title, description, dueDate);
       if (response.success) {
         setTitle('');
         setDescription('');
+        setDueDate('');
         onTaskCreated();
+        showToast('Task created successfully!', 'success');
       } else {
         setError(response.error?.message || 'Failed to create task');
+        showToast('Failed to create task', 'error');
       }
     } catch (err) {
       setError('An error occurred while creating task');
+      showToast('An error occurred while creating task', 'error');
       console.error(err);
     } finally {
       setLoading(false);
@@ -66,6 +73,18 @@ export default function TaskForm({ onTaskCreated, onCancel }: TaskFormProps) {
           className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
           placeholder="Add details..."
           rows={3}
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="task-due-date" className="block text-sm font-medium text-gray-700 mb-1">
+          Due Date (Optional)
+        </label>
+        <input
+          type="date"
+          id="task-due-date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
         />
       </div>
       {error && (

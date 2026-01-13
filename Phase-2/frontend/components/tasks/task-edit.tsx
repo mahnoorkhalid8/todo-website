@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import { useToast } from '../../components/ui/toast-context';
 
 interface Task {
   id: number;
   title: string;
   description: string | null;
   completed: boolean;
+  due_date?: string | null;
 }
 
 interface TaskEditProps {
@@ -17,8 +19,10 @@ interface TaskEditProps {
 export default function TaskEdit({ task, onTaskUpdated, onCancel }: TaskEditProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
+  const [dueDate, setDueDate] = useState(task.due_date || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,14 +35,17 @@ export default function TaskEdit({ task, onTaskUpdated, onCancel }: TaskEditProp
     setError('');
 
     try {
-      const response = await api.updateTask(task.id, title, description);
+      const response = await api.updateTask(task.id, title, description, dueDate);
       if (response.success) {
         onTaskUpdated();
+        showToast('Task updated successfully!', 'success');
       } else {
         setError(response.error?.message || 'Failed to update task');
+        showToast('Failed to update task', 'error');
       }
     } catch (err) {
       setError('An error occurred while updating task');
+      showToast('An error occurred while updating task', 'error');
       console.error(err);
     } finally {
       setLoading(false);
@@ -72,6 +79,18 @@ export default function TaskEdit({ task, onTaskUpdated, onCancel }: TaskEditProp
           className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
           placeholder="Add details..."
           rows={2}
+        />
+      </div>
+      <div className="mb-3">
+        <label htmlFor="edit-task-due-date" className="block text-sm font-medium text-gray-700 mb-1">
+          Due Date (Optional)
+        </label>
+        <input
+          type="date"
+          id="edit-task-due-date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
         />
       </div>
       {error && (

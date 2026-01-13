@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import { useToast } from '../../components/ui/toast-context';
 
 interface TaskDeleteProps {
   taskId: number;
@@ -10,6 +11,7 @@ interface TaskDeleteProps {
 export default function TaskDelete({ taskId, onTaskDeleted, onCancel }: TaskDeleteProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
     setLoading(true);
@@ -19,11 +21,14 @@ export default function TaskDelete({ taskId, onTaskDeleted, onCancel }: TaskDele
       const response = await api.deleteTask(taskId);
       if (response.success) {
         onTaskDeleted();
+        showToast('Task deleted successfully!', 'success');
       } else {
         setError(response.error?.message || 'Failed to delete task');
+        showToast('Failed to delete task', 'error');
       }
     } catch (err) {
       setError('An error occurred while deleting task');
+      showToast('An error occurred while deleting task', 'error');
       console.error(err);
     } finally {
       setLoading(false);
