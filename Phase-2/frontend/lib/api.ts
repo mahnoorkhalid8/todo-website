@@ -1,6 +1,27 @@
 // API client for the Todo Web Application
 // Centralized error handling and request management
 
+interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
+
+interface TaskResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  due_date?: string | null;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -162,7 +183,7 @@ class ApiClient {
 
   // Authentication methods
   async register(email: string, password: string, name?: string) {
-    const response = await this.request('/api/auth/register', {
+    const response = await this.request<TokenResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     });
@@ -176,7 +197,7 @@ class ApiClient {
   }
 
   async login(email: string, password: string) {
-    const response = await this.request('/api/auth/login', {
+    const response = await this.request<TokenResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
