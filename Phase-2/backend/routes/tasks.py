@@ -3,16 +3,54 @@ from sqlmodel import Session
 from typing import List
 
 # Import schemas at module level for proper type hints
+import sys
+import os
+
+# Add the backend directory to the path to handle different import scenarios
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(os.path.dirname(current_dir))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 try:
     from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
     from ..schemas.auth import UserResponse
     from ..dependencies.auth import get_current_active_user
     from ..dependencies.database import get_db_session
-except ImportError:
-    from schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
-    from schemas.auth import UserResponse
-    from dependencies.auth import get_current_active_user
-    from dependencies.database import get_db_session
+except (ImportError, ValueError):
+    try:
+        from schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
+        from schemas.auth import UserResponse
+        from dependencies.auth import get_current_active_user
+        from dependencies.database import get_db_session
+    except ImportError:
+        print("Warning: Could not import task dependencies")
+
+        # Define placeholder classes for graceful degradation
+        from pydantic import BaseModel
+        from typing import Optional
+
+        class TaskCreate(BaseModel):
+            title: str
+            description: Optional[str] = None
+
+        class TaskUpdate(BaseModel):
+            title: Optional[str] = None
+            description: Optional[str] = None
+
+        class TaskResponse(BaseModel):
+            id: int
+            title: str
+            description: Optional[str] = None
+            completed: bool = False
+
+        class TaskToggleComplete(BaseModel):
+            completed: bool
+
+        class UserResponse(BaseModel):
+            id: str
+            email: str
+            name: str
 
 router = APIRouter()
 

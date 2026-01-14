@@ -3,20 +3,56 @@ from sqlmodel import Session
 from datetime import timedelta
 
 # Import schemas at module level for proper type hints
+import sys
+import os
+
+# Add the backend directory to the path to handle different import scenarios
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(os.path.dirname(current_dir))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 try:
+    # Try relative imports first (works when running as a package)
     from ..schemas.auth import UserCreate, UserLogin, Token, UserResponse
     from ..dependencies.database import get_db_session
     from ..utils.auth import create_access_token
     from ..services.auth_service import create_user, authenticate_user
     from ..utils.validation import validate_email, validate_password
     from ..models import User
-except ImportError:
-    from schemas.auth import UserCreate, UserLogin, Token, UserResponse
-    from dependencies.database import get_db_session
-    from utils.auth import create_access_token
-    from services.auth_service import create_user, authenticate_user
-    from utils.validation import validate_email, validate_password
-    from models import User
+except (ImportError, ValueError):
+    # Fall back to absolute imports (works when running directly or in container)
+    try:
+        from schemas.auth import UserCreate, UserLogin, Token, UserResponse
+        from dependencies.database import get_db_session
+        from utils.auth import create_access_token
+        from services.auth_service import create_user, authenticate_user
+        from utils.validation import validate_email, validate_password
+        from models import User
+    except ImportError:
+        print("Warning: Could not import auth dependencies")
+
+        # Define placeholder classes for graceful degradation
+        from pydantic import BaseModel
+        from typing import Optional
+
+        class UserCreate(BaseModel):
+            name: str
+            email: str
+            password: str
+
+        class UserLogin(BaseModel):
+            email: str
+            password: str
+
+        class Token(BaseModel):
+            access_token: str
+            token_type: str
+
+        class UserResponse(BaseModel):
+            id: str
+            email: str
+            name: str
 
 router = APIRouter()
 

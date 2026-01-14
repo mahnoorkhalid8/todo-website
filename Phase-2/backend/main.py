@@ -45,21 +45,56 @@ def create_app():
 
     # Import and include routers after middleware setup
     # This helps avoid circular imports and early model loading
+    import sys
+    import os
+    # Add current directory to path to ensure imports work in all environments
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+
     try:
         # Try relative imports first (works when running as a package)
         from .db import create_db_and_tables
         from .routes import auth, tasks
         # Import models to register them with SQLModel before creating tables
         from . import models
-    except ImportError:
-        # Fall back to absolute imports (works when running directly)
-        import sys
-        import os
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from db import create_db_and_tables
-        from routes import auth, tasks
-        # Import models to register them with SQLModel before creating tables
-        import models
+    except (ImportError, SystemError, ValueError):
+        # Fall back to absolute imports (works when running directly or in container)
+        try:
+            from db import create_db_and_tables
+            from routes import auth, tasks
+            # Import models to register them with SQLModel before creating tables
+            import models
+        except ImportError:
+            # Last resort: try importing with sys.path modifications
+            print("Attempting import with path modifications...")
+            import sys
+            import os
+
+            # Add the current directory and parent directory to the path
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(current_dir)
+
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+
+            try:
+                from db import create_db_and_tables
+                from routes import auth, tasks
+                import models
+            except ImportError as e:
+                print(f"Failed to import dependencies: {e}")
+                # Create minimal app for error handling
+                from fastapi import FastAPI
+                temp_app = FastAPI()
+
+                @temp_app.get("/")
+                def read_root():
+                    return {"error": "Application failed to start properly", "details": str(e)}
+
+                return temp_app
 
     # Include routers
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

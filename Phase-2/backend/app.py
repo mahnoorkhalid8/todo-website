@@ -1,27 +1,45 @@
 import sys
 import os
-# Add the current directory to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import the app from main module
-try:
-    # First try direct import (for when run from this directory)
-    from main import create_app
-    app = create_app()
-except ImportError:
+# Add the current directory and parent directory to the path to handle different deployment scenarios
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+# Import the app from main module with multiple fallback strategies
+def get_app():
     try:
-        # Alternative import method
-        import main
-        app = main.create_app()
-    except ImportError as e:
-        print(f"Import error: {e}")
-        # Create a minimal app for error handling
-        from fastapi import FastAPI
-        app = FastAPI()
+        # First try direct import (for when run from this directory)
+        from main import create_app
+        return create_app()
+    except ImportError:
+        try:
+            # Alternative import method with explicit path
+            import main
+            return main.create_app()
+        except ImportError:
+            try:
+                # Try importing with sys.path modifications
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+                import main
+                return main.create_app()
+            except ImportError as e:
+                print(f"Import error: {e}")
+                # Create a minimal app for error handling
+                from fastapi import FastAPI
+                app = FastAPI()
 
-        @app.get("/")
-        def read_root():
-            return {"error": "Application failed to start properly", "details": str(e)}
+                @app.get("/")
+                def read_root():
+                    return {"error": "Application failed to start properly", "details": str(e)}
+
+                return app
+
+app = get_app()
 
 # This is the entry point for Hugging Face Spaces
 # Note: Hugging Face Spaces is primarily for ML applications
