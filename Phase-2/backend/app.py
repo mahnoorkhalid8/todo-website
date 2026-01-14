@@ -1,8 +1,14 @@
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+sys.path.append(os.path.dirname(__file__))
 
-from backend.main import app
+# Import the app from main module
+try:
+    from main import app
+except ImportError:
+    # Fallback for different deployment scenarios
+    from backend.main import create_app
+    app = create_app()
 
 # This is the entry point for Hugging Face Spaces
 # Note: Hugging Face Spaces is primarily for ML applications
