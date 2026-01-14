@@ -1,14 +1,27 @@
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+# Add the current directory to the path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the app from main module
 try:
-    from main import app
-except ImportError:
-    # Fallback for different deployment scenarios
-    from backend.main import create_app
+    # First try direct import (for when run from this directory)
+    from main import create_app
     app = create_app()
+except ImportError:
+    try:
+        # Alternative import method
+        import main
+        app = main.create_app()
+    except ImportError as e:
+        print(f"Import error: {e}")
+        # Create a minimal app for error handling
+        from fastapi import FastAPI
+        app = FastAPI()
+
+        @app.get("/")
+        def read_root():
+            return {"error": "Application failed to start properly", "details": str(e)}
 
 # This is the entry point for Hugging Face Spaces
 # Note: Hugging Face Spaces is primarily for ML applications

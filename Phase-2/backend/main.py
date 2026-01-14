@@ -49,6 +49,8 @@ def create_app():
         # Try relative imports first (works when running as a package)
         from .db import create_db_and_tables
         from .routes import auth, tasks
+        # Import models to register them with SQLModel before creating tables
+        from . import models
     except ImportError:
         # Fall back to absolute imports (works when running directly)
         import sys
@@ -56,6 +58,8 @@ def create_app():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from db import create_db_and_tables
         from routes import auth, tasks
+        # Import models to register them with SQLModel before creating tables
+        import models
 
     # Include routers
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

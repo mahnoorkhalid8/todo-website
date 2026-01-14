@@ -15,10 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Copy the backend code into the container
-COPY backend/ ./backend/
-
-# Copy the main app entry point
-COPY app.py .
+COPY . .
 
 # Expose the port (Hugging Face uses dynamic ports)
 EXPOSE 7860

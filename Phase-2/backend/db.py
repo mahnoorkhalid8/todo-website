@@ -3,14 +3,6 @@ from contextlib import contextmanager
 from typing import Generator
 import os
 
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative import first (works when running as a package)
-    from . import models  # Import the models module to register all models with SQLModel
-except ImportError:
-    # Fall back to absolute import (works when running directly)
-    import models  # Import the models module to register all models with SQLModel
-
 def get_engine():
     """Get database engine with proper environment variable handling"""
     # Import settings to use the same configuration as config.py
