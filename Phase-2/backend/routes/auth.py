@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlmodel import Session
 from datetime import timedelta
-
-# Import schemas at module level for proper type hints
 import sys
 import os
 
@@ -12,82 +10,89 @@ backend_dir = os.path.dirname(os.path.dirname(current_dir))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# Initialize default values to prevent NameError during function signature evaluation
-get_db_session = None
-create_access_token = None
-create_user = None
-authenticate_user = None
-validate_email = None
-validate_password = None
+# Import schemas and functions with multiple fallback strategies
+def safe_import_auth_components():
+    global UserCreate, UserLogin, Token, UserResponse, get_db_session, create_access_token
+    global create_user, authenticate_user, validate_email, validate_password
 
-try:
-    # Try relative imports first (works when running as a package)
-    from ..schemas.auth import UserCreate, UserLogin, Token, UserResponse
-    from ..dependencies.database import get_db_session
-    from ..utils.auth import create_access_token
-    from ..services.auth_service import create_user, authenticate_user
-    from ..utils.validation import validate_email, validate_password
-    from ..models import User
-except (ImportError, ValueError):
-    # Fall back to absolute imports (works when running directly or in container)
     try:
-        from schemas.auth import UserCreate, UserLogin, Token, UserResponse
-        from dependencies.database import get_db_session
-        from utils.auth import create_access_token
-        from services.auth_service import create_user, authenticate_user
-        from utils.validation import validate_email, validate_password
-        from models import User
-    except ImportError:
-        print("Warning: Could not import auth dependencies")
+        # Try relative imports first (works when running as a package)
+        from ..schemas.auth import UserCreate, UserLogin, Token, UserResponse
+        from ..dependencies.database import get_db_session
+        from ..utils.auth import create_access_token
+        from ..services.auth_service import create_user, authenticate_user
+        from ..utils.validation import validate_email, validate_password
+        from ..models import User
+        print("DEBUG: All auth components imported successfully via relative imports")
+        return True
+    except (ImportError, ValueError) as e:
+        print(f"DEBUG: Relative import failed: {e}")
+        try:
+            # Fall back to absolute imports (works when running directly or in container)
+            from schemas.auth import UserCreate, UserLogin, Token, UserResponse
+            from dependencies.database import get_db_session
+            from utils.auth import create_access_token
+            from services.auth_service import create_user, authenticate_user
+            from utils.validation import validate_email, validate_password
+            from models import User
+            print("DEBUG: All auth components imported successfully via absolute imports")
+            return True
+        except ImportError as e:
+            print(f"DEBUG: Absolute import failed: {e}")
+            # Define fallback classes and functions
+            from pydantic import BaseModel
+            from typing import Optional
+            from fastapi import Depends
 
-        # Define placeholder classes for graceful degradation
-        from pydantic import BaseModel
-        from typing import Optional
-        from fastapi import Depends
+            class UserCreate(BaseModel):
+                name: str
+                email: str
+                password: str
 
-        class UserCreate(BaseModel):
-            name: str
-            email: str
-            password: str
+            class UserLogin(BaseModel):
+                email: str
+                password: str
 
-        class UserLogin(BaseModel):
-            email: str
-            password: str
+            class Token(BaseModel):
+                access_token: str
+                token_type: str
 
-        class Token(BaseModel):
-            access_token: str
-            token_type: str
+            class UserResponse(BaseModel):
+                id: str
+                email: str
+                name: str
 
-        class UserResponse(BaseModel):
-            id: str
-            email: str
-            name: str
+            def get_db_session():
+                yield None
 
-        # Define placeholder functions
-        def get_db_session():
-            yield None
+            def create_access_token(data, expires_delta=None):
+                return "placeholder_token"
 
-        def create_access_token(data, expires_delta=None):
-            return "placeholder_token"
+            def create_user(session, email, password, name):
+                print("ERROR: create_user service not available")
+                return None
 
-        def create_user(session, email, password, name):
-            return None
+            def authenticate_user(session, email, password):
+                print("ERROR: authenticate_user service not available")
+                return None
 
-        def authenticate_user(session, email, password):
-            return None
+            def validate_email(email):
+                return "@" in email and "." in email
 
-        def validate_email(email):
+            def validate_password(password):
+                return len(password) >= 8
+
+            print("DEBUG: Fallback auth components defined")
             return True
 
-        def validate_password(password):
-            return True
+# Call the import function to set up components
+safe_import_auth_components()
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=Token)
 async def register(user: UserCreate = Body(...), session: Session = Depends(get_db_session)):
-
     # Validate email format
     if not validate_email(user.email):
         raise HTTPException(
@@ -100,6 +105,12 @@ async def register(user: UserCreate = Body(...), session: Session = Depends(get_
         print(f"About to call create_user with email: {user.email}")
         db_user = create_user(session, user.email, user.password, user.name)
         print(f"Created user: {db_user}")
+
+        if db_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user - service unavailable"
+            )
 
         # Create access token for the new user
         access_token_expires = timedelta(minutes=30)  # Use appropriate expiration
@@ -140,7 +151,6 @@ async def register(user: UserCreate = Body(...), session: Session = Depends(get_
 
 @router.post("/login", response_model=Token)
 async def login(user_credentials: UserLogin = Body(...), session: Session = Depends(get_db_session)):
-
     user = authenticate_user(session, user_credentials.email, user_credentials.password)
 
     if not user:

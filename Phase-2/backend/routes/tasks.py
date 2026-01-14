@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlmodel import Session
 from typing import List
-
-# Import schemas at module level for proper type hints
 import sys
 import os
 
@@ -12,61 +10,69 @@ backend_dir = os.path.dirname(os.path.dirname(current_dir))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# Initialize default values to prevent NameError during function signature evaluation
-get_current_active_user = None
-TaskCreate = None
-TaskUpdate = None
-TaskResponse = None
-TaskToggleComplete = None
-UserResponse = None
-get_db_session = None
+# Import schemas and functions with multiple fallback strategies
+def safe_import_task_components():
+    global TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete, UserResponse
+    global get_current_active_user, get_db_session
 
-try:
-    from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
-    from ..schemas.auth import UserResponse
-    from ..dependencies.auth import get_current_active_user
-    from ..dependencies.database import get_db_session
-except (ImportError, ValueError):
     try:
-        from schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
-        from schemas.auth import UserResponse
-        from dependencies.auth import get_current_active_user
-        from dependencies.database import get_db_session
-    except ImportError:
-        print("Warning: Could not import task dependencies")
+        from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
+        from ..schemas.auth import UserResponse
+        from ..dependencies.auth import get_current_active_user
+        from ..dependencies.database import get_db_session
+        print("DEBUG: All task components imported successfully via relative imports")
+        return True
+    except (ImportError, ValueError) as e:
+        print(f"DEBUG: Relative import failed: {e}")
+        try:
+            from schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
+            from schemas.auth import UserResponse
+            from dependencies.auth import get_current_active_user
+            from dependencies.database import get_db_session
+            print("DEBUG: All task components imported successfully via absolute imports")
+            return True
+        except ImportError as e:
+            print(f"DEBUG: Absolute import failed: {e}")
 
-        # Define placeholder classes for graceful degradation
-        from pydantic import BaseModel
-        from typing import Optional
+            # Define fallback classes and functions
+            from pydantic import BaseModel
+            from typing import Optional
+            from fastapi import Depends
 
-        class TaskCreate(BaseModel):
-            title: str
-            description: Optional[str] = None
+            class TaskCreate(BaseModel):
+                title: str
+                description: Optional[str] = None
 
-        class TaskUpdate(BaseModel):
-            title: Optional[str] = None
-            description: Optional[str] = None
+            class TaskUpdate(BaseModel):
+                title: Optional[str] = None
+                description: Optional[str] = None
 
-        class TaskResponse(BaseModel):
-            id: int
-            title: str
-            description: Optional[str] = None
-            completed: bool = False
+            class TaskResponse(BaseModel):
+                id: int
+                title: str
+                description: Optional[str] = None
+                completed: bool = False
 
-        class TaskToggleComplete(BaseModel):
-            completed: bool
+            class TaskToggleComplete(BaseModel):
+                completed: bool
 
-        class UserResponse(BaseModel):
-            id: str
-            email: str
-            name: str
+            class UserResponse(BaseModel):
+                id: str
+                email: str
+                name: str
 
-        # Define placeholder functions
-        def get_current_active_user():
-            return UserResponse(id="placeholder", email="placeholder", name="placeholder")
+            # Define placeholder functions
+            def get_current_active_user():
+                return UserResponse(id="placeholder", email="placeholder", name="placeholder")
 
-        def get_db_session():
-            yield None
+            def get_db_session():
+                yield None
+
+            print("DEBUG: Fallback task components defined")
+            return True
+
+# Call the import function to set up components
+safe_import_task_components()
 
 router = APIRouter()
 
@@ -114,6 +120,12 @@ def create_task(task: TaskCreate = Body(...), current_user: UserResponse = Depen
     try:
         # Create new task using the service
         db_task = create_task_service(session, current_user.id, task.title, task.description, task.due_date)
+
+        if db_task is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create task - service unavailable"
+            )
 
         # Ensure all attributes are loaded before session closes
         # Access all attributes that will be needed for serialization
