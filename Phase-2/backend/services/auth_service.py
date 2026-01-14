@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 
 
-def create_user(session: Session, email: str, password: str, name: str = None):
+def create_user(session: Session, email: str, password: str, name: str):
     """
     Create a new user with validated email and password
     """

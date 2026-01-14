@@ -1,59 +1,60 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlmodel import Session
 from typing import List
+
+# Import schemas at module level for proper type hints
+try:
+    from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
+    from ..schemas.auth import UserResponse
+    from ..dependencies.auth import get_current_active_user
+    from ..dependencies.database import get_db_session
+except ImportError:
+    from schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
+    from schemas.auth import UserResponse
+    from dependencies.auth import get_current_active_user
+    from dependencies.database import get_db_session
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=List[TaskResponse])
 def get_tasks(
     status_filter: str = Query("all", description="Filter tasks by status (all, pending, completed)"),
     sort: str = Query("created", description="Sort tasks by field (created, title)"),
     page: int = Query(1, ge=1, description="Page number for pagination"),
     limit: int = Query(10, ge=1, le=100, description="Number of tasks per page"),
-    current_user = Depends(lambda: None),
-    session: Session = Depends(lambda: None)
+    current_user: UserResponse = Depends(get_current_active_user),
+    session: Session = Depends(get_db_session)
 ):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
-        from ..schemas.tasks import TaskResponse
-        from ..schemas.auth import UserResponse
         from ..utils.validation import validate_task_title, validate_task_description
-        from ..dependencies.auth import get_current_active_user
         from ..services.task_service import get_tasks as get_tasks_service
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
-        from schemas.tasks import TaskResponse
-        from schemas.auth import UserResponse
         from utils.validation import validate_task_title, validate_task_description
-        from dependencies.auth import get_current_active_user
         from services.task_service import get_tasks as get_tasks_service
 
+    # The authentication dependency is already handled by get_current_active_user
     tasks = get_tasks_service(session, current_user.id, status_filter, sort, page, limit)
     return tasks
 
 
-@router.post("/")
-def create_task(task: "TaskCreate", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+@router.post("/", response_model=TaskResponse)
+def create_task(task: TaskCreate = Body(...), current_user: UserResponse = Depends(get_current_active_user), session: Session = Depends(get_db_session)):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
-        from ..schemas.tasks import TaskCreate, TaskResponse
+        from ..schemas.tasks import TaskResponse
         from ..schemas.auth import UserResponse
         from ..utils.validation import validate_task_title, validate_task_description
-        from ..dependencies.auth import get_current_active_user
         from ..services.task_service import create_task as create_task_service
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
-        from schemas.tasks import TaskCreate, TaskResponse
+        from schemas.tasks import TaskResponse
         from schemas.auth import UserResponse
         from utils.validation import validate_task_title, validate_task_description
-        from dependencies.auth import get_current_active_user
         from services.task_service import create_task as create_task_service
 
     try:
@@ -72,24 +73,18 @@ def create_task(task: "TaskCreate", current_user = Depends(lambda: None), sessio
         )
 
 
-@router.get("/{task_id}")
-def get_task(task_id: int, current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+@router.get("/{task_id}", response_model=TaskResponse)
+def get_task(task_id: int, current_user: UserResponse = Depends(get_current_active_user), session: Session = Depends(get_db_session)):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
         from ..schemas.tasks import TaskResponse
-        from ..schemas.auth import UserResponse
         from ..utils.validation import validate_task_title, validate_task_description
-        from ..dependencies.auth import get_current_active_user
         from ..services.task_service import get_task_by_id
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
         from schemas.tasks import TaskResponse
-        from schemas.auth import UserResponse
         from utils.validation import validate_task_title, validate_task_description
-        from dependencies.auth import get_current_active_user
         from services.task_service import get_task_by_id
 
     task = get_task_by_id(session, task_id, current_user.id)
@@ -107,24 +102,18 @@ def get_task(task_id: int, current_user = Depends(lambda: None), session: Sessio
     return task
 
 
-@router.put("/{task_id}")
-def update_task(task_id: int, task_update: "TaskUpdate", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+@router.put("/{task_id}", response_model=TaskResponse)
+def update_task(task_id: int, task_update: TaskUpdate = Body(...), current_user: UserResponse = Depends(get_current_active_user), session: Session = Depends(get_db_session)):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
-        from ..schemas.tasks import TaskUpdate, TaskResponse
-        from ..schemas.auth import UserResponse
+        from ..schemas.tasks import TaskResponse
         from ..utils.validation import validate_task_title, validate_task_description
-        from ..dependencies.auth import get_current_active_user
         from ..services.task_service import update_task
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
-        from schemas.tasks import TaskUpdate, TaskResponse
-        from schemas.auth import UserResponse
+        from schemas.tasks import TaskResponse
         from utils.validation import validate_task_title, validate_task_description
-        from dependencies.auth import get_current_active_user
         from services.task_service import update_task
 
     try:
@@ -149,19 +138,15 @@ def update_task(task_id: int, task_update: "TaskUpdate", current_user = Depends(
 
 
 @router.delete("/{task_id}")
-def delete_task(task_id: int, current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+def delete_task(task_id: int, current_user: UserResponse = Depends(get_current_active_user), session: Session = Depends(get_db_session)):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
         from ..schemas.auth import UserResponse
-        from ..dependencies.auth import get_current_active_user
         from ..services.task_service import delete_task
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
         from schemas.auth import UserResponse
-        from dependencies.auth import get_current_active_user
         from services.task_service import delete_task
 
     success = delete_task(session, task_id, current_user.id)
@@ -175,22 +160,16 @@ def delete_task(task_id: int, current_user = Depends(lambda: None), session: Ses
     return {"success": True}
 
 
-@router.patch("/{task_id}/complete")
-def toggle_task_completion(task_id: int, completion_data: "TaskToggleComplete", current_user = Depends(lambda: None), session: Session = Depends(lambda: None)):
+@router.patch("/{task_id}/complete", response_model=TaskResponse)
+def toggle_task_completion(task_id: int, completion_data: TaskToggleComplete = Body(...), current_user: UserResponse = Depends(get_current_active_user), session: Session = Depends(get_db_session)):
     # Import everything inside the function to avoid early initialization
     try:
-        from ..dependencies.database import get_db_session
         from ..models import Task, User
-        from ..schemas.tasks import TaskToggleComplete, TaskResponse
-        from ..schemas.auth import UserResponse
-        from ..dependencies.auth import get_current_active_user
+        from ..schemas.tasks import TaskResponse
         from ..services.task_service import toggle_task_completion
     except (ImportError, ValueError):
-        from dependencies.database import get_db_session
         from models import Task, User
-        from schemas.tasks import TaskToggleComplete, TaskResponse
-        from schemas.auth import UserResponse
-        from dependencies.auth import get_current_active_user
+        from schemas.tasks import TaskResponse
         from services.task_service import toggle_task_completion
 
     updated_task = toggle_task_completion(session, task_id, current_user.id, completion_data.completed)
@@ -208,75 +187,4 @@ def toggle_task_completion(task_id: int, completion_data: "TaskToggleComplete", 
     return updated_task
 
 
-# Update response models after imports are resolved
-try:
-    from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
-    from ..schemas.auth import UserResponse
-    from ..dependencies.database import get_db_session
-    from ..dependencies.auth import get_current_active_user
-
-    # Apply proper type annotations
-    get_tasks.__annotations__ = {
-        'status_filter': str,
-        'sort': str,
-        'page': int,
-        'limit': int,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': List[TaskResponse]
-    }
-
-    create_task.__annotations__ = {
-        'task': TaskCreate,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': TaskResponse
-    }
-
-    get_task.__annotations__ = {
-        'task_id': int,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': TaskResponse
-    }
-
-    update_task.__annotations__ = {
-        'task_id': int,
-        'task_update': TaskUpdate,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': TaskResponse
-    }
-
-    delete_task.__annotations__ = {
-        'task_id': int,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': dict
-    }
-
-    toggle_task_completion.__annotations__ = {
-        'task_id': int,
-        'completion_data': TaskToggleComplete,
-        'current_user': UserResponse,
-        'session': Session,
-        'return': TaskResponse
-    }
-
-    # Update response models for routes
-    for route in router.routes:
-        if route.path == "/":
-            if "POST" in route.methods:
-                route.response_model = TaskResponse
-            elif "GET" in route.methods:
-                route.response_model = List[TaskResponse]
-        elif "/{task_id}" in route.path and "GET" in route.methods:
-            route.response_model = TaskResponse
-        elif "/{task_id}" in route.path and "PUT" in route.methods:
-            route.response_model = TaskResponse
-        elif "/{task_id}" in route.path and "PATCH" in route.path:
-            route.response_model = TaskResponse
-
-except:
-    # If type annotation fails, continue without it
-    pass
+                                                                                                                                                                                                                                                                                                                                     

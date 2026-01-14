@@ -3,6 +3,14 @@ from contextlib import contextmanager
 from typing import Generator
 import os
 
+# Handle imports for both local development and Hugging Face deployment
+try:
+    # Try relative import first (works when running as a package)
+    from . import models  # Import the models module to register all models with SQLModel
+except ImportError:
+    # Fall back to absolute import (works when running directly)
+    import models  # Import the models module to register all models with SQLModel
+
 def get_engine():
     """Get database engine with proper environment variable handling"""
     # Import settings to use the same configuration as config.py
@@ -54,22 +62,15 @@ def get_engine():
         )
 
 
+# Create the engine with connection pooling settings
+engine = get_engine()
+
+
 def create_db_and_tables():
     """
     Create database tables if they don't exist
     This should be called on application startup
     """
-    # Import models to register them with SQLModel
-    # Handle imports for both local development and Hugging Face deployment
-    try:
-        # Try relative import first (works when running as a package)
-        from . import models  # Import the models module to register all models with SQLModel
-    except ImportError:
-        # Fall back to absolute import (works when running directly)
-        import models  # Import the models module to register all models with SQLModel
-
-    # Create engine dynamically to respect current environment
-    engine = get_engine()
     SQLModel.metadata.create_all(bind=engine)
 
 
@@ -79,11 +80,9 @@ def get_session() -> Generator[Session, None, None]:
     Context manager for database sessions
     Ensures proper cleanup of resources
     """
-    engine = get_engine()  # Use dynamic engine to respect environment
     session = Session(engine)
     try:
         yield session
-        # Commit all changes at the end of the context
         session.commit()
     except Exception:
         session.rollback()

@@ -1,12 +1,16 @@
-spec:
-  python_version: "3.11"
-  requirements: requirements.txt
-  app_port: 8000
-  hardware:
-    cpu: 2
-    memory: "4GiB"
-  secrets:
-    - DATABASE_URL
-    - SECRET_KEY
-    - ALGORITHM
-    - ACCESS_TOKEN_EXPIRE_MINUTES
+{
+  "title": "Todo Web Application",
+  "emoji": "✅",
+  "description": "A modern todo application with user authentication and task management with due dates.",
+  "app_file": "backend/main.py",
+  "models": [],
+  "tags": [
+    "todo",
+    "task management",
+    "fullstack",
+    "authentication",
+    "react",
+    "fastapi"
+  ],
+  "hardware": "cpu-basic"
+}

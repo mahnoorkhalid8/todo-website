@@ -1,7 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.openapi.utils import get_openapi
+from fastapi.security import HTTPBearer
 import os
+
+# Define the security scheme globally
+security_scheme = HTTPBearer()
 
 def create_app():
     app = FastAPI(
@@ -25,7 +30,14 @@ def create_app():
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["https://todo-website-blush.vercel.app", "https://mahnoorkhalid8-todo-website.hf.space"],
+        allow_origins=[
+            "https://todo-website-blush.vercel.app",
+            "https://mahnoorkhalid8-todo-website.hf.space",
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -68,6 +80,46 @@ def create_app():
     @app.get("/health")
     def health_check():
         return {"status": "healthy"}
+
+    # Custom OpenAPI schema from the predefined schema file
+    import json
+    import os
+
+    def custom_openapi():
+        # Try to load the predefined schema from api_documentation.json if it exists
+        schema_file_path = os.path.join(os.path.dirname(__file__), "..", "api_documentation.json")
+        if os.path.exists(schema_file_path):
+            try:
+                with open(schema_file_path, 'r') as f:
+                    predefined_schema = json.load(f)
+                app.openapi_schema = predefined_schema
+                return app.openapi_schema
+            except Exception as e:
+                print(f"Could not load predefined schema, falling back to auto-generation: {e}")
+
+        # Fallback to auto-generation
+        openapi_schema = get_openapi(
+            title="Todo Web Application API",
+            version="1.0.0",
+            description="API for the Todo Web Application with user authentication and task management",
+            routes=app.routes,
+        )
+        openapi_schema["components"]["securitySchemes"] = {
+            "HTTPBearer": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+        # Apply security globally or to specific routes that need authentication
+        for path in openapi_schema["paths"]:
+            for method in openapi_schema["paths"][path]:
+                if path.startswith("/api/tasks"):  # Protect task endpoints
+                    openapi_schema["paths"][path][method]["security"] = [{"HTTPBearer": []}]
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
 
     return app
 
