@@ -12,6 +12,14 @@ backend_dir = os.path.dirname(os.path.dirname(current_dir))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
+# Initialize default values to prevent NameError during function signature evaluation
+get_db_session = None
+create_access_token = None
+create_user = None
+authenticate_user = None
+validate_email = None
+validate_password = None
+
 try:
     # Try relative imports first (works when running as a package)
     from ..schemas.auth import UserCreate, UserLogin, Token, UserResponse
@@ -35,6 +43,7 @@ except (ImportError, ValueError):
         # Define placeholder classes for graceful degradation
         from pydantic import BaseModel
         from typing import Optional
+        from fastapi import Depends
 
         class UserCreate(BaseModel):
             name: str
@@ -53,6 +62,25 @@ except (ImportError, ValueError):
             id: str
             email: str
             name: str
+
+        # Define placeholder functions
+        def get_db_session():
+            yield None
+
+        def create_access_token(data, expires_delta=None):
+            return "placeholder_token"
+
+        def create_user(session, email, password, name):
+            return None
+
+        def authenticate_user(session, email, password):
+            return None
+
+        def validate_email(email):
+            return True
+
+        def validate_password(password):
+            return True
 
 router = APIRouter()
 

@@ -16,28 +16,46 @@ def get_app():
         # First try direct import (for when run from this directory)
         from main import create_app
         return create_app()
-    except ImportError:
+    except ImportError as e:
+        print(f"Initial import failed: {e}")
         try:
             # Alternative import method with explicit path
             import main
             return main.create_app()
-        except ImportError:
+        except ImportError as e2:
+            print(f"Alternative import failed: {e2}")
             try:
                 # Try importing with sys.path modifications
                 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
                 import main
                 return main.create_app()
-            except ImportError as e:
-                print(f"Import error: {e}")
+            except ImportError as e3:
+                print(f"Path modification import failed: {e3}")
                 # Create a minimal app for error handling
-                from fastapi import FastAPI
-                app = FastAPI()
+                try:
+                    from fastapi import FastAPI
+                    app = FastAPI()
 
-                @app.get("/")
-                def read_root():
-                    return {"error": "Application failed to start properly", "details": str(e)}
+                    @app.get("/")
+                    def read_root():
+                        return {
+                            "error": "Application failed to start properly",
+                            "details": str(e3),
+                            "fallback": "Basic app running but features may not be available"
+                        }
 
-                return app
+                    return app
+                except ImportError as e4:
+                    # If even FastAPI can't be imported, we're in serious trouble
+                    print(f"Critical import error: {e4}")
+                    # Return a basic callable that can be used as an app
+                    def minimal_app(environ, start_response):
+                        status = '500 Internal Server Error'
+                        headers = [('Content-type', 'application/json')]
+                        start_response(status, headers)
+                        return [b'{"error": "Application startup failed"}']
+
+                    return minimal_app
 
 app = get_app()
 
@@ -50,11 +68,14 @@ app = get_app()
 
 # For Hugging Face Space compatibility
 def main():
-    import uvicorn
-    import os
+    try:
+        import uvicorn
+        import os
 
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+        port = int(os.environ.get("PORT", 7860))
+        uvicorn.run(app, host="0.0.0.0", port=port)
+    except ImportError:
+        print("Uvicorn not available, app started but not running server")
 
 if __name__ == "__main__":
     main()

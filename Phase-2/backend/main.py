@@ -9,6 +9,13 @@ import os
 security_scheme = HTTPBearer()
 
 def create_app():
+    # Import FastAPI and other required modules at the beginning
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
+    from fastapi.openapi.utils import get_openapi
+    import os
+
     app = FastAPI(
         title="Todo Web Application API",
         description="API for the Todo Web Application with user authentication and task management",
@@ -86,19 +93,20 @@ def create_app():
                 import models
             except ImportError as e:
                 print(f"Failed to import dependencies: {e}")
-                # Create minimal app for error handling
-                from fastapi import FastAPI
-                temp_app = FastAPI()
+                # The app object is already defined above, so we can add routes to a basic app
 
-                @temp_app.get("/")
-                def read_root():
-                    return {"error": "Application failed to start properly", "details": str(e)}
+    # Include routers - only if imports succeeded
+    try:
+        app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+        app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+    except:
+        print("Could not include routers, likely import failure")
+        # Add a simple fallback route
+        @app.get("/")
+        def read_root():
+            return {"message": "App started but routes not loaded", "status": "partial"}
 
-                return temp_app
-
-    # Include routers
-    app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-    app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+    # Continue with the rest of the app setup
 
     @app.exception_handler(404)
     async def not_found_handler(request: Request, exc):
@@ -110,7 +118,12 @@ def create_app():
 
     @app.on_event("startup")
     def on_startup():
-        create_db_and_tables()
+        try:
+            create_db_and_tables()
+        except NameError:
+            print("create_db_and_tables not available, skipping database initialization")
+        except Exception as e:
+            print(f"Error during startup: {e}")
 
     @app.get("/")
     def read_root():

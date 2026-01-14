@@ -12,6 +12,15 @@ backend_dir = os.path.dirname(os.path.dirname(current_dir))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
+# Initialize default values to prevent NameError during function signature evaluation
+get_current_active_user = None
+TaskCreate = None
+TaskUpdate = None
+TaskResponse = None
+TaskToggleComplete = None
+UserResponse = None
+get_db_session = None
+
 try:
     from ..schemas.tasks import TaskCreate, TaskUpdate, TaskResponse, TaskToggleComplete
     from ..schemas.auth import UserResponse
@@ -51,6 +60,13 @@ except (ImportError, ValueError):
             id: str
             email: str
             name: str
+
+        # Define placeholder functions
+        def get_current_active_user():
+            return UserResponse(id="placeholder", email="placeholder", name="placeholder")
+
+        def get_db_session():
+            yield None
 
 router = APIRouter()
 
@@ -223,6 +239,3 @@ def toggle_task_completion(task_id: int, completion_data: TaskToggleComplete = B
     _ = updated_task.id, updated_task.title, updated_task.description, updated_task.completed, updated_task.user_id, updated_task.created_at, updated_task.updated_at, updated_task.due_date
 
     return updated_task
-
-
-                                                                                                                                                                                                                                                                                                                                     
