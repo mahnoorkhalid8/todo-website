@@ -19,6 +19,7 @@ COPY requirements.txt .
 
 # Install dependencies with specific order for email-validator
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir "pydantic[email]==2.5.0" && \
     pip install --no-cache-dir email-validator==2.2.0 && \
     pip install --no-cache-dir idna==3.7 && \
     pip install --no-cache-dir -r requirements.txt
