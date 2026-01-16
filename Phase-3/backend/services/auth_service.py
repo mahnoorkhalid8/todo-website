@@ -1,16 +1,7 @@
 from sqlmodel import Session
-
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative imports first (works when running as a package)
-    from ..models import User
-    from ..utils.auth import verify_password, get_password_hash
-    from ..utils.validation import validate_email, validate_password
-except (ImportError, ValueError):
-    # Fall back to absolute imports (works when running directly)
-    from models import User
-    from utils.auth import verify_password, get_password_hash
-    from utils.validation import validate_email, validate_password
+from models import User
+from utils.auth import verify_password, get_password_hash
+from utils.validation import validate_email, validate_password
 
 
 def create_user(session: Session, email: str, password: str, name: str = None) -> User:

@@ -251,8 +251,30 @@ export default function DashboardPage() {
                   <svg className="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  Todo Dashboard
+                  Todo App
                 </h1>
+              </div>
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
+                <a
+                  href="/dashboard"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    'dashboard' === 'dashboard'
+                      ? 'border-white text-white'
+                      : 'border-transparent text-indigo-200 hover:border-indigo-300 hover:text-white'
+                  }`}
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="/chat"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    'chat' === 'chat'
+                      ? 'border-white text-white'
+                      : 'border-transparent text-indigo-200 hover:border-indigo-300 hover:text-white'
+                  }`}
+                >
+                  AI Assistant
+                </a>
               </div>
             </div>
             <div className="flex items-center space-x-4">

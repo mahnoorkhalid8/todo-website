@@ -1,16 +1,8 @@
 from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
-
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative imports first (works when running as a package)
-    from ..models import Task, User
-    from ..utils.validation import validate_task_title, validate_task_description
-except (ImportError, ValueError):
-    # Fall back to absolute imports (works when running directly)
-    from models import Task, User
-    from utils.validation import validate_task_title, validate_task_description
+from models import Task, User
+from utils.validation import validate_task_title, validate_task_description
 
 
 def create_task(session: Session, user_id: str, title: str, description: Optional[str] = None, due_date: Optional[datetime] = None) -> Task:

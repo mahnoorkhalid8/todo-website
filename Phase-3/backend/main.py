@@ -1,24 +1,15 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import os
-
-# Handle imports for both local development and Hugging Face deployment
-# This approach handles different ways the module can be imported
+from db import create_db_and_tables
+from routes import auth, tasks
 try:
-    # Try relative imports first (works when running as a package)
-    from .db import create_db_and_tables
-    from .routes import auth, tasks
-    from .config import settings
+    from routes import chat
 except ImportError:
-    # Fall back to absolute imports (works when running directly)
-    import sys
-    import os
-    # Add the backend directory to the path
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from db import create_db_and_tables
-    from routes import auth, tasks
-    from config import settings
+    # Chat route might not exist yet
+    chat = None
+import os
+from config import settings
 
 
 def create_app():
@@ -40,6 +31,10 @@ def create_app():
     # Include routers
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+
+    # Include chat router if available
+    if chat:
+        app.include_router(chat.router, prefix="/api/chat", tags=["Chatbot"])
 
     @app.exception_handler(404)
     async def not_found_handler(request: Request, exc):
@@ -77,7 +72,7 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=int(os.getenv("PORT", "8000")),
         reload=True
     )

@@ -2,27 +2,42 @@ from sqlmodel import create_engine, Session, SQLModel
 from contextlib import contextmanager
 from typing import Generator
 import os
+from models import User, Task  # Import all models to register them with SQLModel
 
-# Handle imports for both local development and Hugging Face deployment
-try:
-    # Try relative import first (works when running as a package)
-    from .models import User, Task  # Import all models to register them with SQLModel
-except ImportError:
-    # Fall back to absolute import (works when running directly)
-    from models import User, Task  # Import all models to register them with SQLModel
-
-# Get database URL from environment, default to a local PostgreSQL database
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/todo_app")
+# Get database URL from environment, with Neon database as default
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_1wiNqRWc4MPh@ep-sparkling-term-a4onppqn-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require")
 
 # Create the engine with connection pooling settings
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,  # Set to True to see SQL queries in logs
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-    pool_recycle=300,
-)
+# Handle both PostgreSQL and SQLite engines appropriately
+try:
+    if DATABASE_URL.startswith("postgresql"):
+        # PostgreSQL engine for Neon
+        engine = create_engine(
+            DATABASE_URL,
+            echo=False,  # Set to True to see SQL queries in logs
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+            pool_recycle=300,
+        )
+    else:
+        # SQLite engine as fallback
+        engine = create_engine(
+            DATABASE_URL,
+            echo=False,  # Set to True to see SQL queries in logs
+            connect_args={"check_same_thread": False}  # Needed for SQLite with FastAPI
+        )
+    print(f"Connected to database: {DATABASE_URL[:50]}...")  # Show connection info
+except Exception as e:
+    print(f"Database engine creation failed: {e}")
+    # Fallback to SQLite
+    DATABASE_URL = "sqlite:///./todo_app_local.db"
+    engine = create_engine(
+        DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
+    print(f"Fallback to local SQLite database: {DATABASE_URL}")
 
 
 def create_db_and_tables():

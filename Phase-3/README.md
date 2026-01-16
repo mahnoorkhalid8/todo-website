@@ -1,3 +1,13 @@
+---
+title: "Todo Backend API"
+emoji: "📝"
+colorFrom: "blue"
+colorTo: "green"
+sdk: "docker"
+app_file: "Dockerfile"
+pinned: false
+---
+
 # Todo Web Application
 
 A modern full-stack todo web application with user authentication and task management functionality. This application allows users to register, authenticate, and manage their tasks in a responsive, secure interface.
@@ -8,6 +18,8 @@ A modern full-stack todo web application with user authentication and task manag
 - Secure JWT-based session management
 - Full task management (Create, Read, Update, Delete)
 - Task completion toggling
+- Optional due date for tasks
+- Toast notifications for user feedback
 - Responsive UI for mobile, tablet, and desktop
 - User data isolation (each user sees only their tasks)
 
