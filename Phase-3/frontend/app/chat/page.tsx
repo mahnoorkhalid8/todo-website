@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Message {
   id?: number;
@@ -24,6 +24,7 @@ const ChatPage = () => {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Check if user is authenticated
   useEffect(() => {
@@ -281,7 +282,7 @@ const ChatPage = () => {
                 <a
                   href="/dashboard"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    'chat' === 'dashboard'
+                    pathname === '/dashboard'
                       ? 'border-white text-white'
                       : 'border-transparent text-indigo-200 hover:border-indigo-300 hover:text-white'
                   }`}
@@ -291,7 +292,7 @@ const ChatPage = () => {
                 <a
                   href="/chat"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    'chat' === 'chat'
+                    pathname === '/chat'
                       ? 'border-white text-white'
                       : 'border-transparent text-indigo-200 hover:border-indigo-300 hover:text-white'
                   }`}
