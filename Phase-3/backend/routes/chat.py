@@ -283,19 +283,6 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
 
     # FIRST: Handle specific update patterns before any general patterns
 
-    # Handle "add task cooking" format
-    add_task_pattern = r'^add task\s+(.+)$'
-    add_task_match = re.search(add_task_pattern, content_lower)
-    if add_task_match:
-        task_title = add_task_match.group(1).strip()
-        return {
-            "action": "add_task",
-            "params": {
-                "title": task_title,
-                "description": None
-            }
-        }
-
     # Handle "add task description in task 40 Biryani" format
     add_desc_pattern = r'add task description in task (\d+)\s+(.+)$'
     add_desc_match = re.search(add_desc_pattern, content_lower)
@@ -312,16 +299,32 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
-    # Handle "add task due date in task 40 29-01-2026" format
-    add_due_date_pattern = r'add task due date in task (\d+)\s+(.+)$'
-    add_due_date_match = re.search(add_due_date_pattern, content_lower)
-    if add_due_date_match:
-        task_id = add_due_date_match.group(1)
-        due_date_str = add_due_date_match.group(2).strip()
+    # Handle "add task description of task 44 biryani" format (alternative pattern)
+    add_desc_of_pattern = r'add task description of task (\d+)\s+(.+)$'
+    add_desc_of_match = re.search(add_desc_of_pattern, content_lower)
+    if add_desc_of_match:
+        task_id = add_desc_of_match.group(1)
+        description = add_desc_of_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_id,
+                "new_title": None,  # Don't change the title
+                "new_description": description,
+                "new_due_date": None
+            }
+        }
+
+    # Handle "add task due date of task 44 29-01-2026" format (alternative pattern)
+    add_due_date_of_pattern = r'add task due date of task (\d+)\s+(.+)$'
+    add_due_date_of_match = re.search(add_due_date_of_pattern, content_lower)
+    if add_due_date_of_match:
+        task_id = add_due_date_of_match.group(1)
+        due_date_str = add_due_date_of_match.group(2).strip()
 
         # Normalize date format to YYYY-MM-DD
         # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
-        date_parts = due_date_str.split(r'[-/]')
+        date_parts = re.split(r'[-/]', due_date_str)
         if len(date_parts) == 3:
             day, month, year = date_parts
             # Handle 2-digit vs 4-digit years
@@ -335,8 +338,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
         else:
             # If the date doesn't have 3 parts, try another approach for common formats
             # Try to match DD/MM/YY or DD-MM-YY format
-            import re as re_module  # Use different name to avoid conflict
-            date_match = re_module.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
             if date_match:
                 day, month, year = date_match.groups()
                 if len(year) == 2:
@@ -354,6 +356,63 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
                 "new_title": None,  # Don't change the title
                 "new_description": None,  # Don't change description
                 "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "add task due date in task 40 29-01-2026" format
+    add_due_date_pattern = r'add task due date in task (\d+)\s+(.+)$'
+    add_due_date_match = re.search(add_due_date_pattern, content_lower)
+    if add_due_date_match:
+        task_id = add_due_date_match.group(1)
+        due_date_str = add_due_date_match.group(2).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', due_date_str)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # If the date doesn't have 3 parts, try another approach for common formats
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_id,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "add task cooking" format (only if it's not a more specific add command)
+    add_task_pattern = r'^add task\s+(.+)$'
+    add_task_match = re.search(add_task_pattern, content_lower)
+    if add_task_match:
+        task_title = add_task_match.group(1).strip()
+        return {
+            "action": "add_task",
+            "params": {
+                "title": task_title,
+                "description": None
             }
         }
 
@@ -400,7 +459,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
 
         # Normalize date format to YYYY-MM-DD
         # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
-        date_parts = due_date_str.split(r'[-/]')
+        date_parts = re.split(r'[-/]', due_date_str)
         if len(date_parts) == 3:
             day, month, year = date_parts
             # Handle 2-digit vs 4-digit years
@@ -414,8 +473,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
         else:
             # If the date doesn't have 3 parts, try another approach for common formats
             # Try to match DD/MM/YY or DD-MM-YY format
-            import re as re_module  # Use different name to avoid conflict
-            date_match = re_module.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
             if date_match:
                 day, month, year = date_match.groups()
                 if len(year) == 2:
@@ -513,7 +571,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
 
         # Normalize date format to YYYY-MM-DD
         # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
-        date_parts = due_date_str.split(r'[-/]')
+        date_parts = re.split(r'[-/]', due_date_str)
         if len(date_parts) == 3:
             day, month, year = date_parts
             # Handle 2-digit vs 4-digit years
@@ -558,7 +616,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
 
         # Normalize date format to YYYY-MM-DD
         # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
-        date_parts = due_date_str.split(r'[-/]')
+        date_parts = re.split(r'[-/]', due_date_str)
         if len(date_parts) == 3:
             day, month, year = date_parts
             # Handle 2-digit vs 4-digit years
