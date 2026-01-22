@@ -76,7 +76,7 @@ export default function DashboardPage() {
       setLoading(true);
       const response = await api.getTasks();
       if (response.success) {
-        setTasks(response.data || []);
+        setTasks(Array.isArray(response.data) ? response.data : []);
       } else {
         // Check if it's an unauthorized error
         if (response.error?.code === 'HTTP_401' || response.error?.message?.includes('Unauthorized')) {
