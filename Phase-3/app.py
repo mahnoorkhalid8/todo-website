@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+
 from backend.main import app
 
 # This is the entry point for Hugging Face Spaces

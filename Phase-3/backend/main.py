@@ -2,14 +2,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db import create_db_and_tables
-from routes import auth, tasks
+from .routes import auth, tasks
 try:
-    from routes import chat
+    from .routes import chat
 except ImportError:
     # Chat route might not exist yet
     chat = None
 import os
-from config import settings
+from .config import settings
 
 
 def create_app():
