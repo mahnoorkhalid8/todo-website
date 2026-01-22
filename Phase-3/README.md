@@ -146,6 +146,22 @@ Auto-generated documentation is available at http://localhost:8000/docs when the
 - Run with Docker: `docker-compose up --build`
 - Run tests: See individual package.json and requirements.txt files
 
+## Natural Language Task Management
+
+The application includes an AI-powered chatbot that understands natural language commands:
+
+### Task Creation
+- `add task cooking` - Creates a new task with title "cooking"
+
+### Adding Fields to Existing Tasks
+- `add task description in task 44 biryani` - Adds description to task #44
+- `add task due date in task 40 29-01-2026` - Adds due date to task #40
+
+### Updating Existing Fields
+- `update task title of task 40 cook dinner` - Updates title of task #40
+- `update task description in task 44 cook biryani` - Updates description in task #44
+- `update task due date of task 40 02-02-2026` - Updates due date in task #40
+
 ## Hugging Face Space Deployment
 
 ⚠️ **Important**: This application is a full-stack web application with both frontend and backend components. Hugging Face Spaces is primarily designed for machine learning applications and demos, not for traditional web applications with separate frontend and backend services.
@@ -166,13 +182,16 @@ To deploy the backend API to Hugging Face Spaces, use the following configuratio
 
 The repository includes:
 - `app.py` - Entry point for Hugging Face deployment
-- `space.yaml` - Space configuration file
-- Updated `requirements.txt` with necessary dependencies
+- `Dockerfile` - Container configuration
+- `requirements.txt` - Dependencies
+- `Procfile` - Process configuration for alternative platforms
 
-### Environment Variables for Hugging Face Deployment
+### Environment Variables for Deployment
 
-Set these secrets in your Hugging Face Space settings:
+Set these environment variables/secrets in your deployment platform:
 - `DATABASE_URL` - PostgreSQL database connection string
-- `SECRET_KEY` - JWT secret key
+- `SECRET_KEY` - JWT secret key (at least 32 characters)
 - `ALGORITHM` - JWT algorithm (default: HS256)
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
+- `GOOGLE_GEMINI_API_KEY` - Optional: Google Gemini API key for enhanced AI features
+- `GROQ_API_KEY` - Optional: Groq API key for enhanced AI features

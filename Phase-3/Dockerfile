@@ -20,8 +20,8 @@ COPY backend/ ./backend/
 # Copy the main app entry point
 COPY app.py .
 
-# Expose the port (Hugging Face uses dynamic ports)
-EXPOSE 7860
+# Expose the port (FastAPI default is 8000, but Hugging Face uses dynamic ports)
+EXPOSE 8000
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["python", "-c", "from app import main; main()"]
