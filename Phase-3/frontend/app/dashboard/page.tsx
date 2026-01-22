@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { auth } from '../../lib/auth';
 import { api } from '../../lib/api';
 
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null); // Track which task ID is being confirmed for deletion
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Check authentication on page load
   useEffect(() => {
@@ -270,7 +271,7 @@ export default function DashboardPage() {
                 <a
                   href="/dashboard"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    'dashboard' === 'dashboard'
+                    pathname === '/dashboard'
                       ? 'border-white text-white'
                       : 'border-transparent text-indigo-200 hover:border-indigo-300 hover:text-white'
                   }`}
