@@ -22,7 +22,10 @@ def create_app():
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS,
+        allow_origins=[
+            "https://todo-website-blush.vercel.app",
+            "https://mahnoorkhalid8-todo-website.hf.space"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

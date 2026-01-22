@@ -53,8 +53,8 @@ class ApiClient {
 
     const headers = {
       'Content-Type': 'application/json',
-      ...options.headers,
-    };
+      ...(options.headers as Record<string, string>),
+    } as Record<string, string>;
 
     // Add authorization header if token exists
     const token = this.getToken();
