@@ -48,6 +48,18 @@ export default function DashboardPage() {
     };
 
     checkAuth();
+
+    // Add event listener for tasks changed event
+    const handleTasksChanged = () => {
+      fetchTasks();
+    };
+
+    window.addEventListener('tasksChanged', handleTasksChanged);
+
+    // Cleanup function to remove event listener
+    return () => {
+      window.removeEventListener('tasksChanged', handleTasksChanged);
+    };
   }, []);
 
   // Show toast notification
@@ -542,6 +554,9 @@ export default function DashboardPage() {
                               >
                                 {task.title}
                               </span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                                #{task.id}
+                              </span>
                               {task.due_date && (
                                 <span className={`text-xs px-2 py-1 rounded-full ${
                                   new Date(task.due_date) < new Date() && !task.completed
@@ -556,7 +571,7 @@ export default function DashboardPage() {
                             </div>
                             {task.due_date && (
                               <div className="text-sm text-gray-600 mt-1">
-                                📅 Due: {new Date(task.due_date).toLocaleDateString()}
+                                📅 Due: {new Date(task.due_date).toLocaleDateString('en-GB')} {/* Format as DD/MM/YYYY */}
                               </div>
                             )}
                             {task.description && (

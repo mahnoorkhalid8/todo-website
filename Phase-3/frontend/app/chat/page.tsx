@@ -30,13 +30,112 @@ const ChatPage = () => {
     const token = localStorage.getItem('auth_token');
     if (!token) {
       router.push('/login');
+      return;
     }
+
+    // Try to get user ID
+    let userId = '';
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userId = user.id;
+      } else {
+        // If user data isn't stored, decode the token to get user ID
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          userId = payload.sub;
+        }
+      }
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return;
+    }
+
+    // Load existing conversations for the user
+    loadConversations(userId);
   }, [router]);
 
   // Scroll to bottom of messages
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Function to load conversations
+  const loadConversations = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      // Get user's conversations
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8004'}/api/chat/${userId}/conversations`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to load conversations:', response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      const conversations = data.conversations;
+
+      if (conversations && conversations.length > 0) {
+        // Get the most recent conversation
+        const mostRecentConversation = conversations.reduce((latest: any, current: any) =>
+          new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest
+        );
+
+        // Load messages from the most recent conversation
+        loadConversationMessages(userId, mostRecentConversation.id);
+        setConversationId(mostRecentConversation.id);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  // Function to load messages from a specific conversation
+  const loadConversationMessages = async (userId: string, convId: number) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8004'}/api/chat/${userId}/conversation/${convId}/messages`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to load conversation messages:', response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      const messages = data.messages;
+
+      if (messages && messages.length > 0) {
+        // Format messages to match our Message interface
+        const formattedMessages: Message[] = messages.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+          createdAt: msg.created_at,
+        }));
+
+        setMessages(formattedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading conversation messages:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,6 +226,20 @@ const ChatPage = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      // Check if the response indicates a task operation was performed
+      // and notify other parts of the app to refresh tasks
+      if (data.tool_calls && Array.isArray(data.tool_calls)) {
+        const taskOperations = ['add_task', 'update_task', 'delete_task', 'complete_task'];
+        const hasTaskOperation = data.tool_calls.some((call: any) =>
+          taskOperations.includes(call.name)
+        );
+
+        if (hasTaskOperation) {
+          // Dispatch a custom event to notify other components to refresh tasks
+          window.dispatchEvent(new CustomEvent('tasksChanged', { detail: { action: 'refresh' } }));
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
 
@@ -242,7 +355,12 @@ const ChatPage = () => {
                   <div className="whitespace-pre-wrap">{message.content}</div>
                   {message.createdAt && (
                     <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-blue-200' : 'text-gray-500'}`}>
-                      {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(message.createdAt).toLocaleString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Karachi'
+                      })}
                     </div>
                   )}
                 </div>
