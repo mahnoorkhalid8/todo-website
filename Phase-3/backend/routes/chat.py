@@ -465,6 +465,53 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
+    # Handle "update due date of task aa to 04-02-2026" format (task name with "to")
+    update_due_date_to_pattern = r'update due date of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_due_date_to_match = re.search(update_due_date_to_pattern, content_lower)
+    if update_due_date_to_match:
+        task_name = update_due_date_to_match.group(1).strip()
+        due_date_str = update_due_date_to_match.group(2).strip()
+
+        # Remove quotes if present
+        due_date_str = due_date_str.strip('"\'')
+
+        # Normalize date format to YYYY-MM-DD
+        # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', due_date_str)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # If the date doesn't have 3 parts, try another approach for common formats
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
     # Handle "add task due date in task cooking 29-01-2026" format (task name)
     add_due_date_name_pattern = r'add task due date in task ([^0-9]+?)\s+(.+)$'
     add_due_date_name_match = re.search(add_due_date_name_pattern, content_lower)
