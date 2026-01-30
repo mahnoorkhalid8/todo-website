@@ -148,19 +148,34 @@ Auto-generated documentation is available at http://localhost:8000/docs when the
 
 ## Natural Language Task Management
 
-The application includes an AI-powered chatbot that understands natural language commands:
+The application includes an AI-powered chatbot that understands natural language commands and is enhanced with Google's Gemini API for more sophisticated interactions:
 
 ### Task Creation
 - `add task cooking` - Creates a new task with title "cooking"
+- `add task buy groceries and pick up milk and bread` - Creates a task with description
 
-### Adding Fields to Existing Tasks
-- `add task description in task 44 biryani` - Adds description to task #44
-- `add task due date in task 40 29-01-2026` - Adds due date to task #40
+### Viewing Tasks
+- `show me my tasks` - Lists all your tasks
+- `what do I have to do?` - Shows pending tasks
 
-### Updating Existing Fields
+### Updating Tasks
 - `update task title of task 40 cook dinner` - Updates title of task #40
 - `update task description in task 44 cook biryani` - Updates description in task #44
 - `update task due date of task 40 02-02-2026` - Updates due date in task #40
+- `add task description in task 44 Updated description` - Adds description to existing task
+- `add task due date in task 40 2026-02-02` - Adds due date to existing task
+
+### Completing and Deleting Tasks
+- `mark task 1 as complete` - Marks task #1 as complete
+- `complete task 1` - Alternative command to complete task #1
+- `delete task 1` - Deletes task #1
+- `remove task 1` - Alternative command to delete task #1
+
+### AI Assistant Features
+- Powered by Google's Gemini API for natural, contextual conversations
+- Maintains conversation history for context-aware responses
+- Handles complex requests and follows up with clarifying questions when needed
+- Provides helpful feedback and error messages
 
 ## Hugging Face Space Deployment
 

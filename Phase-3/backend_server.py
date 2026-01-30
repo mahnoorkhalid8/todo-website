@@ -1,18 +1,23 @@
+import os
+import sys
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from db import create_db_and_tables
-from routes import auth, tasks
+
+# Add the backend directory to path to resolve imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+
+from backend.db import create_db_and_tables
+from backend.routes import auth, tasks
 try:
-    from routes import chat
+    from backend.routes import chat
 except ImportError:
     # Chat route might not exist yet
     chat = None
-import os
-from config import settings
+from backend.config import settings
 
-
-def create_app():
+def create_app_without_startup_event():
     app = FastAPI(
         title="Todo Web Application API",
         description="API for the Todo Web Application with user authentication and task management",
@@ -24,13 +29,7 @@ def create_app():
         CORSMiddleware,
         allow_origins=[
             "https://todo-website-blush.vercel.app",
-            "https://mahnoorkhalid8-todo-website.hf.space",
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001",
-            "http://localhost:8000",
-            "http://127.0.0.1:8000"
+            "https://mahnoorkhalid8-todo-website.hf.space"
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -59,8 +58,7 @@ def create_app():
             content={"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}
         )
 
-    # Skip startup DB initialization to prevent connection issues during startup
-    # Tables will be created when first accessed
+    # Don't add the startup event that creates DB tables to avoid connection issues
     # @app.on_event("startup")
     # def on_startup():
     #     create_db_and_tables()
@@ -75,15 +73,12 @@ def create_app():
 
     return app
 
-
-app = create_app()
-
+app = create_app_without_startup_event()
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
-        "main:app",
+        "backend_server:app",
         host="127.0.0.1",
-        port=int(os.getenv("PORT", "8000")),
+        port=8000,
         reload=True
     )

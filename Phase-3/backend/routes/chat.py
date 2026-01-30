@@ -22,6 +22,7 @@ try:
     from ..schemas.auth import UserResponse
     from ..services.task_service import create_task, get_tasks, update_task, delete_task, toggle_task_completion
     from ..utils.validation import validate_task_title, validate_task_description
+    from ..services.gemini_service import gemini_service
 except (ImportError, ValueError):
     from models import User, Conversation, Message
     from dependencies.auth import get_current_active_user
@@ -29,6 +30,7 @@ except (ImportError, ValueError):
     from schemas.auth import UserResponse
     from services.task_service import create_task, get_tasks, update_task, delete_task, toggle_task_completion
     from utils.validation import validate_task_title, validate_task_description
+    from services.gemini_service import gemini_service
 
 router = APIRouter()
 
@@ -283,7 +285,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
 
     # FIRST: Handle specific update patterns before any general patterns
 
-    # Handle "add task description in task 40 Biryani" format
+    # Handle "add task description in task 40 Biryani" format (numeric ID)
     add_desc_pattern = r'add task description in task (\d+)\s+(.+)$'
     add_desc_match = re.search(add_desc_pattern, content_lower)
     if add_desc_match:
@@ -293,6 +295,22 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             "action": "update_task",
             "params": {
                 "task_identifier": task_id,
+                "new_title": None,  # Don't change the title
+                "new_description": description,
+                "new_due_date": None
+            }
+        }
+
+    # Handle "add description in task cooking Biryani" format (task name)
+    add_desc_name_pattern = r'add description in task ([^0-9]+?)\s+(.+)$'
+    add_desc_name_match = re.search(add_desc_name_pattern, content_lower)
+    if add_desc_name_match:
+        task_name = add_desc_name_match.group(1).strip()
+        description = add_desc_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
                 "new_title": None,  # Don't change the title
                 "new_description": description,
                 "new_due_date": None
@@ -359,6 +377,50 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
+    # Handle "add due date in task cooking 02-02-2026" format (task name)
+    add_due_date_name_pattern = r'add due date in task ([^0-9]+?)\s+(.+)$'
+    add_due_date_name_match = re.search(add_due_date_name_pattern, content_lower)
+    if add_due_date_name_match:
+        task_name = add_due_date_name_match.group(1).strip()
+        due_date_str = add_due_date_name_match.group(2).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', due_date_str)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # If the date doesn't have 3 parts, try another approach for common formats
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
     # Handle "add task due date in task 40 29-01-2026" format
     add_due_date_pattern = r'add task due date in task (\d+)\s+(.+)$'
     add_due_date_match = re.search(add_due_date_pattern, content_lower)
@@ -403,6 +465,50 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
+    # Handle "add task due date in task cooking 29-01-2026" format (task name)
+    add_due_date_name_pattern = r'add task due date in task ([^0-9]+?)\s+(.+)$'
+    add_due_date_name_match = re.search(add_due_date_name_pattern, content_lower)
+    if add_due_date_name_match:
+        task_name = add_due_date_name_match.group(1).strip()
+        due_date_str = add_due_date_name_match.group(2).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        # Handle DD/MM/YYYY or DD-MM-YYYY format and convert to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', due_date_str)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # If the date doesn't have 3 parts, try another approach for common formats
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', due_date_str)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
     # Handle "add task cooking" format (only if it's not a more specific add command)
     add_task_pattern = r'^add task\s+(.+)$'
     add_task_match = re.search(add_task_pattern, content_lower)
@@ -434,7 +540,7 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
-    # Handle "update task description of task 40 Biryani for dinner" format
+    # Handle "update task description of task 40 Biryani for dinner" format (numeric ID)
     update_task_description_pattern = r'update task description of task (\d+)\s+(.+)$'
     update_task_description_match = re.search(update_task_description_pattern, content_lower)
     if update_task_description_match:
@@ -444,6 +550,38 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             "action": "update_task",
             "params": {
                 "task_identifier": task_id,
+                "new_title": None,  # Don't change the title
+                "new_description": new_description,
+                "new_due_date": None
+            }
+        }
+
+    # Handle "update description of task cooking to biryani for dinner" format (task name)
+    update_desc_name_pattern = r'update description of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_desc_name_match = re.search(update_desc_name_pattern, content_lower)
+    if update_desc_name_match:
+        task_name = update_desc_name_match.group(1).strip()
+        new_description = update_desc_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": new_description,
+                "new_due_date": None
+            }
+        }
+
+    # Handle "update description of task cooking 'biryani for dinner'" format (task name with quotes)
+    update_desc_quotes_pattern = r'update description of task ([^0-9]+?)\s+[\'"](.+)[\'"]$'
+    update_desc_quotes_match = re.search(update_desc_quotes_pattern, content_lower)
+    if update_desc_quotes_match:
+        task_name = update_desc_quotes_match.group(1).strip()
+        new_description = update_desc_quotes_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
                 "new_title": None,  # Don't change the title
                 "new_description": new_description,
                 "new_due_date": None
@@ -733,16 +871,50 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             "params": {"status": status_filter}
         }
 
-    # Identify if it's a task completion command
+    # Identify if it's a task toggle command (toggle between complete/incomplete)
+    toggle_pattern = r'toggle task ([^0-9]+?)\s+to\s+(complete|incomplete|done|not done|finished|unfinished)'
+    toggle_match = re.search(toggle_pattern, content_lower)
+    if toggle_match:
+        task_name = toggle_match.group(1).strip()
+        target_state = toggle_match.group(2).strip()
+
+        # Determine if user wants to complete or uncomplete the task
+        should_complete = target_state in ['complete', 'done', 'finished']
+
+        return {
+            "action": "toggle_task",
+            "params": {
+                "task_identifier": task_name,
+                "target_completed_state": should_complete
+            }
+        }
+
+    # Alternative toggle pattern: "toggle task cooking"
+    simple_toggle_pattern = r'toggle task ([^0-9\s]+)'
+    simple_toggle_match = re.search(simple_toggle_pattern, content_lower)
+    if simple_toggle_match:
+        task_name = simple_toggle_match.group(1).strip()
+        return {
+            "action": "toggle_task",
+            "params": {
+                "task_identifier": task_name,
+                "target_completed_state": None  # Will toggle to opposite state
+            }
+        }
+
+    # Identify if it's a task completion command (check after toggle patterns to avoid conflicts)
     complete_patterns = ["mark", "complete", "finish", "done with", "done", "mark as complete"]
     if any(pattern in content_lower for pattern in complete_patterns):
-        # Try to extract task identifier from the message
-        import re as re_module
-        task_identifier = extract_task_identifier_from_message(message_content)
-        return {
-            "action": "complete_task",
-            "params": {"task_identifier": task_identifier}
-        }
+        # Check if this is part of a toggle command that wasn't caught by the regex
+        # Avoid matching "complete" when it's part of "toggle task X to complete"
+        if not re.search(r'toggle task .+?\s+to\s+complete', content_lower):
+            # Try to extract task identifier from the message
+            import re as re_module
+            task_identifier = extract_task_identifier_from_message(message_content)
+            return {
+                "action": "complete_task",
+                "params": {"task_identifier": task_identifier}
+            }
 
     # Identify if it's a task deletion command
     delete_patterns = ["delete", "remove", "cancel", "get rid of", "eliminate", "erase"]
@@ -854,6 +1026,24 @@ def process_chat_message(
                             "result": "success"
                         })
                         tool_calls.append({"name": "add_task", "arguments": json.dumps({"user_id": user_id, "title": new_task.title})})
+
+                        # Enhance the response with Gemini for a more natural, conversational tone
+                        recent_messages = session.query(Message).filter(
+                            Message.conversation_id == conversation_id
+                        ).order_by(Message.created_at.desc()).limit(5).all()
+
+                        conversation_history = []
+                        for msg in reversed(recent_messages):  # Reverse to get chronological order
+                            conversation_history.append({
+                                "role": msg.role,
+                                "content": msg.content
+                            })
+
+                        response_text = gemini_service.enhance_response(
+                            response_text,
+                            f"adding task '{new_task.title}'",
+                            conversation_history
+                        )
                     else:
                         response_text = "I couldn't create that task. Please try again."
             else:
@@ -890,6 +1080,24 @@ def process_chat_message(
             })
             tool_calls.append({"name": "list_tasks", "arguments": json.dumps({"user_id": user_id, "status": status_filter})})
 
+            # Enhance the response with Gemini for a more natural, conversational tone
+            recent_messages = session.query(Message).filter(
+                Message.conversation_id == conversation_id
+            ).order_by(Message.created_at.desc()).limit(5).all()
+
+            conversation_history = []
+            for msg in reversed(recent_messages):  # Reverse to get chronological order
+                conversation_history.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+
+            response_text = gemini_service.enhance_response(
+                response_text,
+                f"listing {status_filter} tasks",
+                conversation_history
+            )
+
         elif parsed_command["action"] == "request_task_identification":
             # Request more information about which task to act on
             response_text = parsed_command.get("message", "Could you specify which task you'd like to work with?")
@@ -907,6 +1115,24 @@ def process_chat_message(
                     "result": "success"
                 })
                 tool_calls.append({"name": "complete_task", "arguments": json.dumps({"user_id": user_id, "task_id": result["task"]["id"], "title": result["task"]["title"], "completed": result["task"]["completed"]})})
+
+                # Enhance the response with Gemini for a more natural, conversational tone
+                recent_messages = session.query(Message).filter(
+                    Message.conversation_id == conversation_id
+                ).order_by(Message.created_at.desc()).limit(5).all()
+
+                conversation_history = []
+                for msg in reversed(recent_messages):  # Reverse to get chronological order
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": msg.content
+                    })
+
+                response_text = gemini_service.enhance_response(
+                    response_text,
+                    f"completing task '{result['task']['title']}'",
+                    conversation_history
+                )
             else:
                 executed_tool_calls.append({
                     "tool_name": "complete_task",
@@ -927,6 +1153,24 @@ def process_chat_message(
                     "result": "success"
                 })
                 tool_calls.append({"name": "delete_task", "arguments": json.dumps({"user_id": user_id, "task_id": result["task"]["id"], "title": result["task"]["title"]})})
+
+                # Enhance the response with Gemini for a more natural, conversational tone
+                recent_messages = session.query(Message).filter(
+                    Message.conversation_id == conversation_id
+                ).order_by(Message.created_at.desc()).limit(5).all()
+
+                conversation_history = []
+                for msg in reversed(recent_messages):  # Reverse to get chronological order
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": msg.content
+                    })
+
+                response_text = gemini_service.enhance_response(
+                    response_text,
+                    f"deleting task '{result['task']['title']}'",
+                    conversation_history
+                )
             else:
                 executed_tool_calls.append({
                     "tool_name": "delete_task",
@@ -951,6 +1195,29 @@ def process_chat_message(
                     "result": "success"
                 })
                 tool_calls.append({"name": "update_task", "arguments": json.dumps({"user_id": user_id, "task_id": result["task"]["id"], "title": result["task"]["title"], "description": result["task"]["description"], "due_date": result["task"].get("due_date")})})
+
+                # Enhance the response with Gemini for a more natural, conversational tone
+                recent_messages = session.query(Message).filter(
+                    Message.conversation_id == conversation_id
+                ).order_by(Message.created_at.desc()).limit(5).all()
+
+                conversation_history = []
+                for msg in reversed(recent_messages):  # Reverse to get chronological order
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": msg.content
+                    })
+
+                update_action = "updating"
+                if new_title: update_action += f" title to '{new_title}'"
+                if new_description: update_action += f" description to '{new_description}'"
+                if new_due_date: update_action += f" due date to '{new_due_date}'"
+
+                response_text = gemini_service.enhance_response(
+                    response_text,
+                    f"{update_action} for task '{result['task']['title']}'",
+                    conversation_history
+                )
             else:
                 executed_tool_calls.append({
                     "tool_name": "update_task",
@@ -958,18 +1225,103 @@ def process_chat_message(
                     "result": "failure"
                 })
 
+        elif parsed_command["action"] == "toggle_task":
+            # Toggle a task's completion status
+            task_identifier = parsed_command["params"]["task_identifier"]
+            target_completed_state = parsed_command["params"].get("target_completed_state")
+
+            # Find the task first
+            from models import Task
+            task = find_task_by_identifier(session, user_id, task_identifier)
+
+            if task:
+                # If a specific target state was requested, use that; otherwise, toggle to opposite
+                if target_completed_state is not None:
+                    new_completed_status = target_completed_state
+                else:
+                    # Toggle to opposite state
+                    new_completed_status = not task["completed"]
+
+                # Update the task completion status
+                from services.task_service import toggle_task_completion
+                updated_task = toggle_task_completion(session, task["id"], user_id, new_completed_status)
+
+                if updated_task:
+                    status_text = "completed" if updated_task.completed else "incomplete"
+                    response_text = f"Task '{updated_task.title}' has been marked as {status_text}."
+
+                    executed_tool_calls.append({
+                        "tool_name": "toggle_task",
+                        "params": {"task_id": updated_task.id, "title": updated_task.title, "completed": updated_task.completed},
+                        "result": "success"
+                    })
+                    tool_calls.append({"name": "toggle_task", "arguments": json.dumps({"user_id": user_id, "task_id": updated_task.id, "title": updated_task.title, "completed": updated_task.completed})})
+
+                    # Enhance the response with Gemini for a more natural, conversational tone
+                    recent_messages = session.query(Message).filter(
+                        Message.conversation_id == conversation_id
+                    ).order_by(Message.created_at.desc()).limit(5).all()
+
+                    conversation_history = []
+                    for msg in reversed(recent_messages):  # Reverse to get chronological order
+                        conversation_history.append({
+                            "role": msg.role,
+                            "content": msg.content
+                        })
+
+                    status_text = "completed" if new_completed_status else "incomplete"
+                    action_text = f"toggling task '{updated_task.title}' to {status_text}"
+                    response_text = gemini_service.enhance_response(
+                        response_text,
+                        action_text,
+                        conversation_history
+                    )
+                else:
+                    response_text = f"Failed to update the completion status of task '{task['title']}'."
+                    executed_tool_calls.append({
+                        "tool_name": "toggle_task",
+                        "params": {"task_identifier": task_identifier},
+                        "result": "failure"
+                    })
+            else:
+                response_text = f"Could not find a task matching '{task_identifier}'."
+                executed_tool_calls.append({
+                    "tool_name": "toggle_task",
+                    "params": {"task_identifier": task_identifier},
+                    "result": "failure"
+                })
+
         elif parsed_command["action"] == "unknown":
-            # Unknown command - provide help
-            response_text = parsed_command.get("message",
-                "I'm not sure how to handle that. Try saying something like 'Add a task to buy groceries' or 'Show me my tasks'")
+            # For unknown commands, use Gemini to generate a helpful response
+            # First get recent conversation history for context
+            recent_messages = session.query(Message).filter(
+                Message.conversation_id == conversation_id
+            ).order_by(Message.created_at.desc()).limit(5).all()
+
+            conversation_history = []
+            for msg in reversed(recent_messages):  # Reverse to get chronological order
+                conversation_history.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+
+            # Generate response using Gemini
+            response_text = gemini_service.generate_response(user_message, conversation_history)
 
         else:
-            # Some other action
-            response_text = "I'm not sure how to handle that command."
+            # For other recognized actions, use the standard response but enhance with Gemini if needed
+            # This shouldn't occur since all valid actions are handled above, but just in case
+            # We'll use the standard response from the action processing
+            pass  # response_text is already set by the action processing above
 
     except Exception as e:
         # Handle any errors during processing
-        response_text = f"Sorry, I encountered an error: {str(e)}"
+        # Fallback to Gemini for error response if possible
+        try:
+            response_text = gemini_service.generate_response(f"I encountered an error: {str(e)}. Could you please try again?", [])
+        except:
+            response_text = f"Sorry, I encountered an error: {str(e)}"
+
         executed_tool_calls.append({
             "tool_name": "error",
             "params": {"error": str(e)},

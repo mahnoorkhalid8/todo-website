@@ -11,14 +11,21 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_1wiNqRWc
 # Handle both PostgreSQL and SQLite engines appropriately
 try:
     if DATABASE_URL.startswith("postgresql"):
-        # PostgreSQL engine for Neon
+        # PostgreSQL engine for Neon - with Neon-compatible connection settings
         engine = create_engine(
             DATABASE_URL,
             echo=False,  # Set to True to see SQL queries in logs
-            pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=10,
-            pool_recycle=300,
+            pool_pre_ping=True,        # Verify connections before use
+            pool_recycle=300,          # Recycle connections every 5 minutes
+            pool_timeout=20,           # Time to wait for connection
+            max_overflow=0,            # Limit overflow connections for Neon
+            pool_size=5,               # Connection pool size
+            connect_args={
+                "connect_timeout": 10,   # Connection timeout (valid for psycopg2)
+                "keepalives_idle": 10,
+                "keepalives_interval": 5,
+                "keepalives_count": 2
+            }
         )
     else:
         # SQLite engine as fallback
@@ -30,6 +37,7 @@ try:
     print(f"Connected to database: {DATABASE_URL[:50]}...")  # Show connection info
 except Exception as e:
     print(f"Database engine creation failed: {e}")
+    print("Switching to local SQLite database as fallback...")
     # Fallback to SQLite
     DATABASE_URL = "sqlite:///./todo_app_local.db"
     engine = create_engine(

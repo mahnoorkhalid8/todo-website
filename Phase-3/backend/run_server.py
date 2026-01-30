@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Set the database URL to use SQLite
-os.environ.setdefault('DATABASE_URL', 'sqlite:///./todo_app_local.db')
+# Use the database URL from environment, default to SQLite if not set
+# This will use Neon DB if DATABASE_URL is properly set in environment
+if 'DATABASE_URL' not in os.environ:
+    os.environ.setdefault('DATABASE_URL', 'sqlite:///./todo_app_local.db')
 
 # Set host and port
 host = os.getenv('HOST', '127.0.0.1')
