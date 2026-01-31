@@ -18,6 +18,7 @@ interface Task {
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -101,6 +102,7 @@ export default function DashboardPage() {
       const response = await api.getTasks();
       if (response.success) {
         setTasks(Array.isArray(response.data) ? response.data : []);
+        setLastUpdated(new Date()); // Update the last updated timestamp
       } else {
         // Check if it's an unauthorized error
         if (response.error?.code === 'HTTP_401' || response.error?.message?.includes('Unauthorized')) {
@@ -616,11 +618,11 @@ export default function DashboardPage() {
                               </span>
                               {task.due_date && (
                                 <span className={`text-xs px-2 py-1 rounded-full ${
-                                  new Date(task.due_date).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) < new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) && !task.completed
+                                  new Date(task.due_date) < new Date() && !task.completed
                                     ? 'bg-red-100 text-red-800'
                                     : 'bg-blue-100 text-blue-800'
                                 }`}>
-                                  {new Date(task.due_date).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) < new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) && !task.completed
+                                  {new Date(task.due_date) < new Date() && !task.completed
                                     ? 'Overdue'
                                     : 'Due Soon'}
                                 </span>
@@ -628,19 +630,7 @@ export default function DashboardPage() {
                             </div>
                             {task.due_date && (
                               <div className="text-sm text-gray-600 mt-1">
-                                📅 Due: {new Date(task.due_date).toLocaleDateString('en-GB')} {/* Format as DD/MM/YYYY */}
-                                <br />
-                                <span className="text-xs text-gray-500">
-                                  {new Date(task.due_date).toLocaleString('en-US', {
-                                    weekday: 'short',
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    timeZone: 'Asia/Karachi' // Pakistan timezone
-                                  })}
-                                </span>
+                                📅 Due: {new Date(task.due_date).toLocaleDateString('en-GB')}
                               </div>
                             )}
                             {task.description && (
