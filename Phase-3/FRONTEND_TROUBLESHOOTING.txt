@@ -1,0 +1,87 @@
+# FRONTEND TROUBLESHOOTING GUIDE
+# Resolving "Unprocessable Content" Error in Frontend
+
+## ROOT CAUSE ANALYSIS
+
+The "Unprocessable Content" error appearing in the frontend might actually be masking an authentication issue. Here's what's likely happening:
+
+1. The frontend shows "Unprocessable Content" but this may be a generic error message
+2. The real issue is often "Unauthorized" (401) that gets misreported
+3. The user is not properly authenticated when creating tasks
+
+## DIAGNOSIS STEPS
+
+### 1. Verify Authentication Status
+- Make sure you're logged in to the frontend
+- Check if the auth token exists in browser localStorage
+  - Open browser DevTools (F12)
+  - Go to Application/Storage tab
+  - Look for 'auth_token' in localStorage
+  - Verify the token is present and valid
+
+### 2. Check Network Requests
+- Open browser DevTools (F12)
+- Go to Network tab
+- Try to create a task
+- Look at the failed request to see the actual error
+- The real error might be 401 Unauthorized instead of 422 Unprocessable Content
+
+### 3. Verify Backend Connection
+- Ensure the API URL is correctly set in .env.local
+- NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+## SOLUTION STEPS
+
+### 1. Login First
+- Navigate to http://localhost:3000/login
+- Log in with valid credentials
+- Navigate to the dashboard to create tasks
+
+### 2. Clear Browser Storage (if needed)
+- If you're having persistent auth issues:
+  - Open DevTools
+  - Go to Application/Storage
+  - Clear localStorage
+  - Log in again
+
+### 3. Verify Token Expiration
+- JWT tokens expire after 15 minutes
+- If you've been on the page for a while, log out and log back in
+
+### 4. Check Browser Console
+- Open DevTools
+- Go to Console tab
+- Look for any JavaScript errors that might prevent proper API calls
+
+## TESTING PROCEDURE
+
+1. Clear any existing auth state
+2. Log in fresh to the frontend
+3. Navigate to dashboard
+4. Try creating a task
+5. Monitor Network tab for actual HTTP status codes
+
+## COMMON SOLUTIONS
+
+- Always ensure you're logged in before creating tasks
+- If you get errors, try logging out and logging back in
+- Check browser DevTools for actual error messages
+- The "Unprocessable Content" error in the UI might mask authentication issues
+
+## DEBUGGING COMMANDS
+
+If you need to test directly:
+```bash
+# Get a fresh token
+curl -X POST 'http://127.0.0.1:8000/api/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"final@test.com","password":"FinalPass123!"}'
+
+# Test with the token
+curl -X POST 'http://127.0.0.1:8000/api/tasks/' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -d '{"title":"Test from direct API","description":"Direct API test"}'
+```
+
+The backend API is working correctly (as proven by the 200 response in Swagger UI). The issue is with frontend authentication state management.

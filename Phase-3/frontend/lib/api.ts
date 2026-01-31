@@ -136,9 +136,23 @@ class ApiClient {
   }
 
   async createTask(title: string, description?: string, dueDate?: string) {
+    // Format due date to ISO 8601 if provided
+    let formattedDueDate: string | undefined;
+    if (dueDate) {
+      try {
+        // Convert to proper ISO format
+        const date = new Date(dueDate);
+        formattedDueDate = date.toISOString().split('T')[0] + 'T00:00:00';
+      } catch (error) {
+        console.error('Error formatting due date:', error);
+        // If formatting fails, send as is (backend will validate)
+        formattedDueDate = dueDate;
+      }
+    }
+
     return this.request('/api/tasks', {
       method: 'POST',
-      body: JSON.stringify({ title, description, due_date: dueDate }),
+      body: JSON.stringify({ title, description, due_date: formattedDueDate }),
     });
   }
 
@@ -147,9 +161,23 @@ class ApiClient {
   }
 
   async updateTask(id: number, title?: string, description?: string, dueDate?: string) {
+    // Format due date to ISO 8601 if provided
+    let formattedDueDate: string | undefined;
+    if (dueDate) {
+      try {
+        // Convert to proper ISO format
+        const date = new Date(dueDate);
+        formattedDueDate = date.toISOString().split('T')[0] + 'T00:00:00';
+      } catch (error) {
+        console.error('Error formatting due date:', error);
+        // If formatting fails, send as is (backend will validate)
+        formattedDueDate = dueDate;
+      }
+    }
+
     return this.request(`/api/tasks/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ title, description, due_date: dueDate }),
+      body: JSON.stringify({ title, description, due_date: formattedDueDate }),
     });
   }
 

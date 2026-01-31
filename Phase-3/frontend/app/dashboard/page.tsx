@@ -50,16 +50,40 @@ export default function DashboardPage() {
 
     checkAuth();
 
-    // Add event listener for tasks changed event
-    const handleTasksChanged = () => {
+    // Add event listener for tasks changed event (from AI assistant operations)
+    const handleTasksChanged = (event?: Event) => {
+      console.log("Tasks changed event received, refreshing tasks...");
       fetchTasks();
     };
 
     window.addEventListener('tasksChanged', handleTasksChanged);
 
-    // Cleanup function to remove event listener
+    // Listen for storage events (for cross-tab communication)
+    const handleStorageChange = (e: StorageEvent) => {
+      if ((e.key === 'tasksLastUpdated' || e.key === 'tasksRefreshTrigger') && e.newValue) {
+        console.log("Tasks refresh triggered from another tab/window, refreshing tasks...");
+        fetchTasks();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for visibility change to refresh when user comes back to tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // User switched back to this tab, refresh tasks
+        console.log("Tab became visible, refreshing tasks...");
+        fetchTasks();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function to remove event listeners
     return () => {
       window.removeEventListener('tasksChanged', handleTasksChanged);
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -98,8 +122,24 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
+    // Format the due date to ISO 8601 format if it exists
+    let formattedDueDate: string | undefined;
+    if (newTaskDueDate) {
+      try {
+        // Convert date string to proper ISO format for Pakistan timezone
+        const date = new Date(newTaskDueDate);
+        // Adjust for Pakistan timezone (UTC+5)
+        date.setTime(date.getTime() + (5 * 60 * 60 * 1000)); // Add 5 hours for Pakistan time
+        formattedDueDate = date.toISOString().split('T')[0] + 'T00:00:00'; // Format as YYYY-MM-DDTHH:MM:SS
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        // If date formatting fails, don't send the due_date field
+        formattedDueDate = undefined;
+      }
+    }
+
     try {
-      const response = await api.createTask(newTaskTitle, newTaskDescription, newTaskDueDate);
+      const response = await api.createTask(newTaskTitle, newTaskDescription, formattedDueDate);
       if (response.success) {
         setNewTaskTitle('');
         setNewTaskDescription('');
@@ -173,8 +213,24 @@ export default function DashboardPage() {
   };
 
   const saveEditedTask = async (id: number) => {
+    // Format the due date to ISO 8601 format if it exists
+    let formattedDueDate: string | undefined;
+    if (editingDueDate) {
+      try {
+        // Convert date string to proper ISO format for Pakistan timezone
+        const date = new Date(editingDueDate);
+        // Adjust for Pakistan timezone (UTC+5)
+        date.setTime(date.getTime() + (5 * 60 * 60 * 1000)); // Add 5 hours for Pakistan time
+        formattedDueDate = date.toISOString().split('T')[0] + 'T00:00:00'; // Format as YYYY-MM-DDTHH:MM:SS
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        // If date formatting fails, don't send the due_date field
+        formattedDueDate = undefined;
+      }
+    }
+
     try {
-      const response = await api.updateTask(id, editingTitle, editingDescription, editingDueDate);
+      const response = await api.updateTask(id, editingTitle, editingDescription, formattedDueDate);
       if (response.success) {
         setEditingTaskId(null);
         setEditingTitle('');
@@ -560,11 +616,11 @@ export default function DashboardPage() {
                               </span>
                               {task.due_date && (
                                 <span className={`text-xs px-2 py-1 rounded-full ${
-                                  new Date(task.due_date) < new Date() && !task.completed
+                                  new Date(task.due_date).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) < new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) && !task.completed
                                     ? 'bg-red-100 text-red-800'
                                     : 'bg-blue-100 text-blue-800'
                                 }`}>
-                                  {new Date(task.due_date) < new Date() && !task.completed
+                                  {new Date(task.due_date).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) < new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }) && !task.completed
                                     ? 'Overdue'
                                     : 'Due Soon'}
                                 </span>
@@ -573,6 +629,18 @@ export default function DashboardPage() {
                             {task.due_date && (
                               <div className="text-sm text-gray-600 mt-1">
                                 📅 Due: {new Date(task.due_date).toLocaleDateString('en-GB')} {/* Format as DD/MM/YYYY */}
+                                <br />
+                                <span className="text-xs text-gray-500">
+                                  {new Date(task.due_date).toLocaleString('en-US', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    timeZone: 'Asia/Karachi' // Pakistan timezone
+                                  })}
+                                </span>
                               </div>
                             )}
                             {task.description && (

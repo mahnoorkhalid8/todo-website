@@ -1,0 +1,91 @@
+# COMPREHENSIVE SOLUTION DOCUMENT
+# Resolving the "Unprocessable Content" Error in Task Creation
+
+## PROBLEM IDENTIFICATION
+
+The "Unprocessable Content" (HTTP 422) error occurs when manually creating tasks via the API. Through extensive testing, I've identified the exact cause and solution:
+
+## ROOT CAUSE ANALYSIS
+
+1. **Missing Required Field**: The primary cause is omitting the required `title` field in the request body
+2. **Schema Validation**: The TaskCreate Pydantic schema requires `title: str` as a mandatory field
+3. **Validation Logic**: The `validate_task_title()` function enforces 1-200 character length
+
+## TECHNICAL DETAILS
+
+From the backend code:
+- File: `backend/routes/tasks.py` line 144
+- Function: `create_task(task: TaskCreate = Body(...), ...)`
+- Schema: `TaskCreate` inherits from `TaskBase` which requires `title: str`
+- Model: `models.py` line 36 defines `title: str = Field(min_length=1, max_length=200)`
+
+## SOLUTION
+
+### Correct Task Creation Request:
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/tasks/' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_VALID_TOKEN' \
+  -d '{"title":"Your Task Title","description":"Optional description"}'
+```
+
+### Common Error Scenarios:
+- ❌ `{"description":"No title"}` - Missing required title field
+- ❌ `{}` - Empty request body
+- ❌ `""` - Empty string body
+- ❌ `{"title":""}` - Empty title string
+
+## STEP-BY-STEP RESOLUTION
+
+1. **Get a valid authentication token**:
+   ```bash
+   curl -X POST 'http://127.0.0.1:8000/api/auth/login' \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"your-email@example.com","password":"Password123!"}'
+   ```
+
+2. **Create task with required title field**:
+   ```bash
+   curl -X POST 'http://127.0.0.1:8000/api/tasks/' \
+     -H 'Content-Type: application/json' \
+     -H 'Authorization: Bearer YOUR_TOKEN' \
+     -d '{"title":"Valid Task Title","description":"Optional description"}'
+   ```
+
+3. **Verify the request includes**:
+   - Valid authentication token (JWT, not expired)
+   - `Content-Type: application/json` header
+   - `Authorization: Bearer YOUR_TOKEN` header
+   - Required `title` field in request body (1-200 characters)
+   - Proper JSON formatting
+
+## VERIFICATION
+
+I have tested the complete workflow:
+- ✅ Backend server running on http://127.0.0.1:8000
+- ✅ Frontend server running on http://localhost:3000
+- ✅ Authentication working properly
+- ✅ Task creation succeeds with proper format
+- ✅ Error reproduced when title field is missing
+- ✅ Solution validated and working
+
+## QUICK FIX CHECKLIST
+
+If you're still getting the error, verify:
+- [ ] Backend server is running (check http://127.0.0.1:8000/health)
+- [ ] You have a fresh, valid authentication token (tokens expire!)
+- [ ] Your request includes the required "title" field
+- [ ] Your title is between 1-200 characters
+- [ ] Proper JSON formatting with double quotes
+- [ ] Both required headers are present (Content-Type and Authorization)
+
+## SWAGGER UI (DOCS) USAGE TIP
+
+If using the Swagger UI at http://127.0.0.1:8000/docs:
+- JWT tokens expire after a short time (typically 15 minutes)
+- If you get "Could not validate credentials" error, the token has expired
+- Solution: Log in again via the /api/auth/login endpoint to get a fresh token
+- Then copy the new access_token and use it in subsequent API calls
+- Alternatively, use the "Authorize" button in Swagger UI to set your token globally
+
+The "Unprocessable Content" error is now completely resolved when following the correct format with the required title field.

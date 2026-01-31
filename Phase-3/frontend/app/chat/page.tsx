@@ -239,6 +239,10 @@ const ChatPage = () => {
         if (hasTaskOperation) {
           // Dispatch a custom event to notify other components to refresh tasks
           window.dispatchEvent(new CustomEvent('tasksChanged', { detail: { action: 'refresh' } }));
+
+          // Also update localStorage to signal other tabs/pages to refresh
+          localStorage.setItem('tasksLastUpdated', new Date().toISOString());
+          localStorage.setItem('tasksRefreshTrigger', Date.now().toString());
         }
       }
     } catch (error) {

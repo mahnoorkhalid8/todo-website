@@ -1,0 +1,77 @@
+MANUAL TASK CREATION GUIDE
+==========================
+
+The "Unprocessable Content" error occurs when creating tasks manually via API calls.
+This is typically caused by missing required fields or incorrect request formatting.
+
+SOLUTIONS:
+==========
+
+1. Register a user first (if needed):
+   curl -X POST 'http://127.0.0.1:8000/api/auth/register' \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"your-email@example.com","password":"Password123!","name":"Your Name"}'
+
+2. Login to get your authentication token:
+   curl -X POST 'http://127.0.0.1:8000/api/auth/login' \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"your-email@example.com","password":"Password123!"}'
+
+3. Create a task with the obtained token (replace YOUR_TOKEN with actual token):
+   curl -X POST 'http://127.0.0.1:8000/api/tasks/' \
+     -H 'Content-Type: application/json' \
+     -H 'Authorization: Bearer YOUR_TOKEN' \
+     -d '{"title":"Your Task Title","description":"Optional description"}'
+
+4. CRITICAL: Tokens expire! If you get "Could not validate credentials", log in again to get a new token.
+
+5. ESSENTIAL: The "title" field is REQUIRED - you will get "field required" error if omitted.
+   ❌ WRONG: {"description":"Just a description"}  # Missing title
+   ✅ CORRECT: {"title":"Task Title", "description":"Optional description"}
+
+COMMON CAUSES OF ERROR:
+======================
+
+1. Missing required fields:
+   - Missing 'title' field (REQUIRED) - This causes: {"detail":[{"loc":["body","title"],"msg":"field required","type":"value_error.missing"}]}
+   - Correct: {"title":"Task Title"}
+   - With description: {"title":"Task Title","description":"Task Description"}
+
+2. Invalid JSON format:
+   - Malformed JSON: {, }, [, ], etc. - This causes: {"detail":[{"type":"json_invalid","loc":["body",X],"msg":"JSON decode error",...}]}
+   - Missing quotes around field names: {title:"Task Title"}
+   - Correct: {"title":"Task Title"}
+
+3. Missing authentication:
+   - No Authorization header
+   - Correct: -H 'Authorization: Bearer YOUR_TOKEN'
+
+4. Incorrect content type:
+   - Wrong: Content-Type: text/plain
+   - Correct: -H 'Content-Type: application/json'
+
+5. Expired authentication token:
+   - Old token that has expired
+   - Solution: Log in again to get a fresh token
+
+VALID TASK PAYLOAD EXAMPLES:
+===========================
+
+1. {"title": "Simple task with just title"}
+
+2. {"title": "Task with description", "description": "This is a detailed description of the task"}
+
+3. {"title": "Task with due date", "description": "This task has a deadline", "due_date": "2026-12-31T23:59:59"}
+
+TROUBLESHOOTING STEPS:
+=====================
+1. Ensure the backend server is running on http://127.0.0.1:8000
+2. Register/login to obtain a valid authentication token
+3. Always include the Authorization header with your token
+4. Ensure the title field is present in your request (required field)
+5. Verify JSON formatting is correct
+6. Make sure to use double quotes for JSON properties
+7. JWT tokens expire! If you get "Could not validate credentials", log in again for a new token
+8. Check that your request includes Content-Type: application/json header
+9. Ensure your title meets validation requirements (1-200 characters)
+10. For descriptions, ensure they are under 1000 characters if provided
