@@ -60,11 +60,18 @@ def add_message(session: Session, user_id: str, conversation_id: int, role: str,
 
 def extract_task_info_from_message(message_content: str) -> Dict[str, str]:
     """
-    Extract task information from natural language message.
+    Extract task information from natural language message including title, description, and due date.
     This is a simple parser - in a real implementation, this would be more sophisticated.
     """
+    import re
+
     # Convert to lowercase for easier parsing
     content_lower = message_content.lower()
+
+    # Initialize variables
+    title = ""
+    description = None
+    due_date = None
 
     # Check for task creation patterns
     if any(phrase in content_lower for phrase in ["add a task to", "create task", "remember to", "add task"]):
@@ -74,20 +81,59 @@ def extract_task_info_from_message(message_content: str) -> Dict[str, str]:
                 title_start = content_lower.find(phrase) + len(phrase)
                 title = message_content[title_start:].strip()
 
-                # Look for additional description after separators
-                desc_indicators = [" and ", ", it's about ", ", it's ", " - ", ": "]
-                description = None
+                # Look for due date patterns in the entire message
+                # Patterns for due date: "with due date YYYY-MM-DD", "due date YYYY-MM-DD", "by YYYY-MM-DD", etc.
+                due_date_patterns = [
+                    r'with due date (\d{4}-\d{2}-\d{2})',
+                    r'due date (\d{4}-\d{2}-\d{2})',
+                    r'by (\d{4}-\d{2}-\d{2})',
+                    r'on (\d{4}-\d{2}-\d{2})',
+                    r'with due date (\d{2}-\d{2}-\d{4})',
+                    r'due date (\d{2}-\d{2}-\d{4})',
+                    r'by (\d{2}-\d{2}-\d{4})',
+                    r'on (\d{2}-\d{2}-\d{4})',
+                    r'with due date (\d{2}/\d{2}/\d{4})',
+                    r'due date (\d{2}/\d{2}/\d{4})',
+                    r'by (\d{2}/\d{2}/\d{4})',
+                    r'on (\d{2}/\d{2}/\d{4})'
+                ]
 
-                for indicator in desc_indicators:
-                    if indicator in title:
-                        parts = title.split(indicator, 1)
-                        title = parts[0].strip()
-                        description = parts[1].strip()
+                for pattern in due_date_patterns:
+                    match = re.search(pattern, content_lower)
+                    if match:
+                        due_date = match.group(1)
+                        # Remove the due date part from the title
+                        title = re.sub(pattern, '', title, flags=re.IGNORECASE).strip()
+                        # Clean up extra spaces and punctuation
+                        title = re.sub(r'\s+', ' ', title).strip()
                         break
 
-                return {"title": title, "description": description}
+                # Look for description patterns
+                # Patterns for description: "with description ...", "and description ...", "description: ...", etc.
+                desc_patterns = [
+                    r'with description (.*?)(?: and | with | due date|$)',
+                    r'and description (.*?)(?: and | with | due date|$)',
+                    r'description[:\-\s]+(.*?)(?: and | with | due date|$)',
+                    r'with description of (.*?)(?: and | with | due date|$)',
+                    r'and description of (.*?)(?: and | with | due date|$)'
+                ]
 
-    return {"title": message_content.strip(), "description": None}
+                for pattern in desc_patterns:
+                    match = re.search(pattern, content_lower)
+                    if match:
+                        description = match.group(1).strip()
+                        # Remove the description part from the title
+                        title = re.sub(pattern, '', title, flags=re.IGNORECASE).strip()
+                        # Clean up extra spaces and punctuation
+                        title = re.sub(r'\s+', ' ', title).strip()
+                        break
+
+                # Additional cleanup to remove trailing conjunctions/punctuation
+                title = re.sub(r'[,\.\-:]$', '', title).strip()
+
+                return {"title": title, "description": description, "due_date": due_date}
+
+    return {"title": message_content.strip(), "description": None, "due_date": None}
 
 
 def extract_task_identifier_from_message(message_content: str) -> str:
@@ -217,22 +263,41 @@ def find_and_perform_task_operation(session: Session, user_id: str, task_identif
         # Convert due date string to datetime if provided
         due_date_obj = None
         if new_due_date:
-            try:
-                due_date_obj = datetime.fromisoformat(new_due_date.replace('Z', '+00:00'))
-            except ValueError:
-                # If fromisoformat fails, try parsing as YYYY-MM-DD
+            # First try to parse with time format (YYYY-MM-DD HH:MM AM/PM)
+            time_formats = [
+                '%Y-%m-%d %I:%M %p',
+                '%Y-%m-%d %H:%M',
+                '%d-%m-%Y %I:%M %p',
+                '%d/%m/%Y %I:%M %p',
+                '%d-%m-%Y %H:%M',
+                '%d/%m/%Y %H:%M'
+            ]
+
+            for fmt in time_formats:
                 try:
-                    due_date_obj = datetime.strptime(new_due_date, '%Y-%m-%d')
+                    due_date_obj = datetime.strptime(new_due_date, fmt)
+                    break
                 except ValueError:
-                    # If all parsing fails, try parsing as DD-MM-YYYY or DD/MM/YYYY
+                    continue
+
+            # If time parsing didn't work, try date-only formats
+            if due_date_obj is None:
+                try:
+                    due_date_obj = datetime.fromisoformat(new_due_date.replace('Z', '+00:00'))
+                except ValueError:
+                    # If fromisoformat fails, try parsing as YYYY-MM-DD
                     try:
-                        due_date_obj = datetime.strptime(new_due_date, '%d-%m-%Y')
+                        due_date_obj = datetime.strptime(new_due_date, '%Y-%m-%d')
                     except ValueError:
+                        # If all parsing fails, try parsing as DD-MM-YYYY or DD/MM/YYYY
                         try:
-                            due_date_obj = datetime.strptime(new_due_date, '%d/%m/%Y')
+                            due_date_obj = datetime.strptime(new_due_date, '%d-%m-%Y')
                         except ValueError:
-                            # If all parsing fails, keep as None
-                            due_date_obj = None
+                            try:
+                                due_date_obj = datetime.strptime(new_due_date, '%d/%m/%Y')
+                            except ValueError:
+                                # If all parsing fails, keep as None
+                                due_date_obj = None
 
         updated_task = update_task(session, task["id"], user_id, title_to_use, description_to_use, due_date_obj)
         if updated_task:
@@ -371,6 +436,190 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             "action": "update_task",
             "params": {
                 "task_identifier": task_id,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "add due date of task aaa "03-03-2026"" format (task name with quoted date)
+    add_due_date_quoted_pattern = r'add due date of task ([^0-9]+?)\s+"([^"]+)"$'
+    add_due_date_quoted_match = re.search(add_due_date_quoted_pattern, content_lower)
+    if add_due_date_quoted_match:
+        task_name = add_due_date_quoted_match.group(1).strip()
+        date_part = add_due_date_quoted_match.group(2).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', date_part)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', date_part)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+            else:
+                due_date_str = date_part  # If parsing fails, use as-is
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "add due date of task a "03-02-2026" 12:14 PM" format (task name with quotes and time)
+    add_due_date_quoted_with_time_pattern = r'add due date of task ([^0-9]+?)\s+"([^"]+)"\s+(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))$'
+    add_due_date_quoted_with_time_match = re.search(add_due_date_quoted_with_time_pattern, content_lower)
+    if add_due_date_quoted_with_time_match:
+        task_name = add_due_date_quoted_with_time_match.group(1).strip()
+        date_part = add_due_date_quoted_with_time_match.group(2).strip()
+        time_part = add_due_date_quoted_with_time_match.group(3).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', date_part)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            normalized_date = f"{year}-{month}-{day}"
+        else:
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', date_part)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                normalized_date = f"{year}-{month}-{day}"
+            else:
+                normalized_date = date_part  # If parsing fails, use as-is
+
+        # Combine date and time
+        due_date_str = f"{normalized_date} {time_part}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "update due date of task aaa "03-03-2026"" format (task name with quoted date)
+    update_due_date_quoted_pattern = r'update due date of task ([^0-9]+?)\s+"([^"]+)"$'
+    update_due_date_quoted_match = re.search(update_due_date_quoted_pattern, content_lower)
+    if update_due_date_quoted_match:
+        task_name = update_due_date_quoted_match.group(1).strip()
+        date_part = update_due_date_quoted_match.group(2).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', date_part)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            due_date_str = f"{year}-{month}-{day}"
+        else:
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', date_part)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                due_date_str = f"{year}-{month}-{day}"
+            else:
+                due_date_str = date_part  # If parsing fails, use as-is
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": None,  # Don't change description
+                "new_due_date": due_date_str
+            }
+        }
+
+    # Handle "update due date of task a "03-02-2026" 12:14 PM" format (task name with quotes and time)
+    update_due_date_quoted_with_time_pattern = r'update due date of task ([^0-9]+?)\s+"([^"]+)"\s+(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))$'
+    update_due_date_quoted_with_time_match = re.search(update_due_date_quoted_with_time_pattern, content_lower)
+    if update_due_date_quoted_with_time_match:
+        task_name = update_due_date_quoted_with_time_match.group(1).strip()
+        date_part = update_due_date_quoted_with_time_match.group(2).strip()
+        time_part = update_due_date_quoted_with_time_match.group(3).strip()
+
+        # Normalize date format to YYYY-MM-DD
+        date_parts = re.split(r'[-/]', date_part)
+        if len(date_parts) == 3:
+            day, month, year = date_parts
+            # Handle 2-digit vs 4-digit years
+            if len(year) == 2:
+                year = '20' + year
+            if len(day) == 1:
+                day = '0' + day
+            if len(month) == 1:
+                month = '0' + month
+            normalized_date = f"{year}-{month}-{day}"
+        else:
+            # Try to match DD/MM/YY or DD-MM-YY format
+            date_match = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})', date_part)
+            if date_match:
+                day, month, year = date_match.groups()
+                if len(year) == 2:
+                    year = '20' + year
+                if len(day) == 1:
+                    day = '0' + day
+                if len(month) == 1:
+                    month = '0' + month
+                normalized_date = f"{year}-{month}-{day}"
+            else:
+                normalized_date = date_part  # If parsing fails, use as-is
+
+        # Combine date and time
+        due_date_str = f"{normalized_date} {time_part}"
+
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
                 "new_title": None,  # Don't change the title
                 "new_description": None,  # Don't change description
                 "new_due_date": due_date_str
@@ -898,6 +1147,70 @@ def parse_command_from_message(message_content: str) -> Dict[str, Any]:
             }
         }
 
+    # Handle "update task title of task cooking to cook biryani" format (task name with "to")
+    update_task_title_name_pattern = r'update task title of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_task_title_name_match = re.search(update_task_title_name_pattern, content_lower)
+    if update_task_title_name_match:
+        task_name = update_task_title_name_match.group(1).strip()
+        new_title = update_task_title_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": new_title,
+                "new_description": None,  # Don't change description
+                "new_due_date": None
+            }
+        }
+
+    # Handle "update task description of task cooking to biryani for dinner" format (task name with "to")
+    update_task_desc_name_pattern = r'update task description of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_task_desc_name_match = re.search(update_task_desc_name_pattern, content_lower)
+    if update_task_desc_name_match:
+        task_name = update_task_desc_name_match.group(1).strip()
+        new_description = update_task_desc_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": new_description,
+                "new_due_date": None
+            }
+        }
+
+    # Handle "update title of task cooking to cook biryani" format (task name with "to")
+    update_title_name_pattern = r'update title of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_title_name_match = re.search(update_title_name_pattern, content_lower)
+    if update_title_name_match:
+        task_name = update_title_name_match.group(1).strip()
+        new_title = update_title_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": new_title,
+                "new_description": None,  # Don't change description
+                "new_due_date": None
+            }
+        }
+
+    # Handle "update description of task cooking to biryani for dinner" format (task name with "to")
+    update_desc_name_pattern = r'update description of task ([^0-9]+?)\s+to\s+(.+)$'
+    update_desc_name_match = re.search(update_desc_name_pattern, content_lower)
+    if update_desc_name_match:
+        task_name = update_desc_name_match.group(1).strip()
+        new_description = update_desc_name_match.group(2).strip()
+        return {
+            "action": "update_task",
+            "params": {
+                "task_identifier": task_name,
+                "new_title": None,  # Don't change the title
+                "new_description": new_description,
+                "new_due_date": None
+            }
+        }
+
     # Identify if it's a task creation command
     create_patterns = ["add a task", "create task", "remember to", "add task", "add "]
     # Exclude patterns that are meant for updating descriptions
@@ -1056,23 +1369,54 @@ def process_chat_message(
                 if not is_valid:
                     response_text = f"Error creating task: {error_msg}. Please try again with a different title."
                 else:
+                    # Handle due date if provided
+                    due_date_obj = None
+                    due_date_str = task_params.get("due_date")
+                    if due_date_str:
+                        try:
+                            # Try ISO format first (YYYY-MM-DD)
+                            due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d')
+                        except ValueError:
+                            try:
+                                # Try DD-MM-YYYY or DD/MM/YYYY format
+                                due_date_obj = datetime.strptime(due_date_str, '%d-%m-%Y')
+                            except ValueError:
+                                try:
+                                    due_date_obj = datetime.strptime(due_date_str, '%d/%m/%Y')
+                                except ValueError:
+                                    # If all parsing fails, keep as None
+                                    due_date_obj = None
+
                     # Create the task
                     new_task = create_task(
                         session=session,
                         user_id=user_id,
                         title=task_params["title"],
                         description=task_params.get("description"),
-                        due_date=None
+                        due_date=due_date_obj
                     )
 
                     if new_task:
                         response_text = f"I've added '{new_task.title}' to your task list."
                         executed_tool_calls.append({
                             "tool_name": "add_task",
-                            "params": {"title": new_task.title, "id": new_task.id},
+                            "params": {
+                                "title": new_task.title,
+                                "id": new_task.id,
+                                "description": new_task.description,
+                                "due_date": new_task.due_date.isoformat() if new_task.due_date else None
+                            },
                             "result": "success"
                         })
-                        tool_calls.append({"name": "add_task", "arguments": json.dumps({"user_id": user_id, "title": new_task.title})})
+                        tool_calls.append({
+                            "name": "add_task",
+                            "arguments": json.dumps({
+                                "user_id": user_id,
+                                "title": new_task.title,
+                                "description": new_task.description,
+                                "due_date": new_task.due_date.isoformat() if new_task.due_date else None
+                            })
+                        })
 
                         # Enhance the response with Gemini for a more natural, conversational tone
                         recent_messages = session.query(Message).filter(

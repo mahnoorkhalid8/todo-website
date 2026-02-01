@@ -99,7 +99,10 @@ class AuthUtils {
         }
       }
 
-      return { success: true, user: responseData.user || this.getUser() };
+      const apiUser = responseData.user;
+      const storedUser = this.getUser();
+      const user = apiUser || (storedUser ? storedUser : undefined);
+      return { success: true, user: user };
     } else {
       return { success: false, error: response.error?.message || 'Login failed' };
     }

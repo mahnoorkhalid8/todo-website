@@ -54,6 +54,7 @@ def safe_import_task_components():
             # Define fallback classes and functions
             from pydantic import BaseModel
             from typing import Optional
+            from datetime import datetime
             from fastapi import Depends
 
             class TaskCreate(BaseModel):
@@ -63,6 +64,7 @@ def safe_import_task_components():
             class TaskUpdate(BaseModel):
                 title: Optional[str] = None
                 description: Optional[str] = None
+                due_date: Optional[datetime] = None
 
             class TaskResponse(BaseModel):
                 id: int
