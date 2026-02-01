@@ -2,6 +2,6 @@
   "framework": "nextjs",
   "env": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://mahnoorkhalid8-todo-app.hf.space"
+    "NEXT_PUBLIC_API_URL": "https://mahnoorkhalid8-todo-bot.hf.space"
   }
 }
