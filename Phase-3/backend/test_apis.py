@@ -9,7 +9,7 @@ TEST_USER = {
     "password": "PQRpqr@1!"
 }
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://mahnoorkhalid8-todo-bot.hf.space"
 
 def test_registration():
     print("Testing Registration API...")

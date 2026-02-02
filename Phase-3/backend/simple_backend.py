@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 
 # Set environment variables directly to bypass .env file issues
 os.environ['BETTER_AUTH_SECRET'] = 'test-secret-key-change-in-production'
-os.environ['FRONTEND_URL'] = 'http://localhost:3000'
-os.environ['BACKEND_URL'] = 'http://localhost:8000'
+os.environ['FRONTEND_URL'] = 'https://todo-website-bot.vercel.app'
+os.environ['BACKEND_URL'] = 'https://mahnoorkhalid8-todo-bot.hf.space'
 
 # Define settings directly instead of using config.py
 class DirectSettings:
     better_auth_secret: str = os.getenv("BETTER_AUTH_SECRET", "test-secret-key-change-in-production")
-    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
-    backend_url: str = os.getenv("BACKEND_URL", "http://localhost:8000")
+    frontend_url: str = os.getenv("FRONTEND_URL", "https://todo-website-bot.vercel.app")
+    backend_url: str = os.getenv("BACKEND_URL", "https://mahnoorkhalid8-todo-bot.hf.space")
 
 settings = DirectSettings()
 

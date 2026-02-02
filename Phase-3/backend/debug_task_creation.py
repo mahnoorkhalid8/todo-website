@@ -3,7 +3,7 @@ import json
 
 # Test creating a task with minimal data
 def test_create_task():
-    url = "http://localhost:8000/api/tasks/"
+    url = "https://mahnoorkhalid8-todo-bot.hf.space/api/tasks/"
 
     # Sample headers (you might need to add an auth token if required)
     headers = {

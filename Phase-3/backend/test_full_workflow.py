@@ -15,7 +15,7 @@ def test_full_workflow():
     """Test the complete workflow: register, login, create tasks, edit, delete"""
     try:
         print("=== Testing Full Workflow ===")
-        base_url = "http://localhost:8000"
+        base_url = "https://mahnoorkhalid8-todo-bot.hf.space"
 
         # Step 1: Register a user
         import time

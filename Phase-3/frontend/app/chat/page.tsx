@@ -70,7 +70,7 @@ const ChatPage = () => {
       if (!token) return;
 
       // Get user's conversations
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8004'}/api/chat/${userId}/conversations`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}/conversations`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ const ChatPage = () => {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8004'}/api/chat/${userId}/conversation/${convId}/messages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}/conversation/${convId}/messages`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ const ChatPage = () => {
       }
 
       // Send the message to the backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8004'}/api/chat/${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
