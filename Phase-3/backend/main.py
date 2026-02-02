@@ -23,8 +23,8 @@ def create_app():
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "https://todo-website-blush.vercel.app",
-            "https://mahnoorkhalid8-todo-website.hf.space",
+            "https://todo-website-bot.vercel.app",
+            "https://mahnoorkhalid8-todo-bot.hf.space",
             "http://localhost:3000",
             "http://localhost:3001",
             "http://127.0.0.1:3000",
