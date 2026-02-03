@@ -21,30 +21,30 @@ class ApiClient {
     // Remove any trailing slashes to ensure clean URL joining
     baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
-    // Ensure HTTPS in production environments to prevent mixed content errors
-    if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
-      try {
-        const urlObj = new URL(baseUrl);
-        urlObj.protocol = 'https:';
-        baseUrl = urlObj.toString();
-        // Ensure no trailing slash after protocol change
-        baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-      } catch (e) {
-        // If parsing fails, fall back to the default HTTPS URL
-        baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
-        // Ensure no trailing slash on fallback
-        baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-      }
-    } else if (!baseUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
-      // If in production and URL doesn't start with https, force HTTPS
+    // Always ensure HTTPS in production environments to prevent mixed content errors
+    // Check if we're in production (browser or server)
+    const isProduction = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+    const isBrowserAndHttps = typeof window !== 'undefined' && window.location?.protocol === 'https:';
+
+    // If in production, or if page is loaded over HTTPS, enforce HTTPS for API calls
+    if (isProduction || isBrowserAndHttps) {
       if (baseUrl.startsWith('http://')) {
         baseUrl = baseUrl.replace('http://', 'https://');
-      } else {
-        baseUrl = 'https://' + baseUrl;
       }
-      // Ensure no trailing slash after protocol change
-      baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      // If it doesn't start with https://, ensure it's a proper URL format
+      else if (!baseUrl.startsWith('https://')) {
+        // If it starts with http://, https://, or protocol-relative //, handle appropriately
+        if (baseUrl.startsWith('//')) {
+          baseUrl = 'https:' + baseUrl;
+        } else if (!baseUrl.startsWith('https://')) {
+          // If it's just a domain, prepend https://
+          baseUrl = 'https://' + baseUrl;
+        }
+      }
     }
+
+    // Ensure no trailing slash after protocol change
+    baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
     this.baseUrl = baseUrl;
     this.token = null;
