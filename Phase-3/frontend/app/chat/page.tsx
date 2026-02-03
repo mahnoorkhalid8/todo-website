@@ -76,8 +76,9 @@ const ChatPage = () => {
         return;
       }
 
-      // The response.data should now contain the conversations in the expected format
-      const conversations = response.data?.conversations || [];
+      // Type assertion to handle the response data properly
+      const responseData = response.data as { conversations?: any[] } | undefined;
+      const conversations = responseData?.conversations || [];
 
       if (conversations && conversations.length > 0) {
         // Get the most recent conversation
@@ -105,8 +106,9 @@ const ChatPage = () => {
         return;
       }
 
-      // The response.data should now contain the messages in the expected format
-      const messages = response.data?.messages || [];
+      // Type assertion to handle the response data properly
+      const responseData = response.data as { messages?: any[] } | undefined;
+      const messages = responseData?.messages || [];
 
       if (messages && messages.length > 0) {
         // Format messages to match our Message interface
