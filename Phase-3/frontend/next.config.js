@@ -8,7 +8,20 @@ const nextConfig = {
   ],
   experimental: {
     // Enable webpack 5 for better tree shaking
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "upgrade-insecure-requests",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig
