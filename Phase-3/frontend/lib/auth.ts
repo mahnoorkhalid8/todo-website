@@ -1,6 +1,7 @@
 // Authentication utilities for the Todo Web Application
 
-import { api } from './api';
+import { getApiClient } from './api';
+const api = getApiClient();
 
 interface User {
   id: string;

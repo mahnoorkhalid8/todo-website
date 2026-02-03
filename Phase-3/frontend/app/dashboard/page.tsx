@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { auth } from '../../lib/auth';
-import { api } from '../../lib/api';
+import { getApiClient } from '../../lib/api';
+const api = getApiClient();
 
 interface Task {
   id: number;

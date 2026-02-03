@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { getApiClient } from '../../lib/api';
+const api = getApiClient();
 
 interface Task {
   id: number;

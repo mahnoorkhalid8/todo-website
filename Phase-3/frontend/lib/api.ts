@@ -65,12 +65,23 @@ class ApiClient {
     }
   }
 
+  // Helper method to properly join URL segments
+  private joinUrl(base: string, endpoint: string): string {
+    // Remove trailing slash from base if present
+    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    // Remove leading slash from endpoint if present
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+
+    // Join with a single slash in between
+    return `${normalizedBase}/${normalizedEndpoint}`;
+  }
+
   // Generic request method
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = this.joinUrl(this.baseUrl, endpoint);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -247,5 +258,18 @@ class ApiClient {
   }
 }
 
-// Export a singleton instance
-export const api = new ApiClient();
+// Create a singleton instance using a factory pattern to avoid initialization issues
+let _apiInstance: ApiClient | null = null;
+
+function getApiClient(): ApiClient {
+  if (!_apiInstance) {
+    _apiInstance = new ApiClient();
+  }
+  return _apiInstance;
+}
+
+// Export the getter function instead of the instance directly
+export { getApiClient };
+
+// For backward compatibility, also export as default
+export default getApiClient;

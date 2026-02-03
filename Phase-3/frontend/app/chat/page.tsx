@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { getApiClient } from '../../lib/api';
+const api = getApiClient();
 
 interface Message {
   id?: number;
@@ -66,47 +68,15 @@ const ChatPage = () => {
   // Function to load conversations
   const loadConversations = async (userId: string) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
+      // Use the API client which handles authentication automatically
+      const response = await api.getConversations(userId);
 
-      // Get API URL with HTTPS enforcement
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
-
-      // Ensure HTTPS in production environments to prevent mixed content errors
-      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
-        try {
-          const urlObj = new URL(apiUrl);
-          urlObj.protocol = 'https:';
-          apiUrl = urlObj.toString();
-        } catch (e) {
-          // If parsing fails, fall back to the default HTTPS URL
-          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
-        }
-      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
-        // If in production and URL doesn't start with https, force HTTPS
-        if (apiUrl.startsWith('http://')) {
-          apiUrl = apiUrl.replace('http://', 'https://');
-        } else {
-          apiUrl = 'https://' + apiUrl;
-        }
-      }
-
-      // Get user's conversations
-      const response = await fetch(`${apiUrl}/api/chat/${userId}/conversations`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to load conversations:', response.statusText);
+      if (!response.success) {
+        console.error('Failed to load conversations:', response.error?.message);
         return;
       }
 
-      const data = await response.json();
-      const conversations = data.conversations;
+      const conversations = response.data?.conversations || [];
 
       if (conversations && conversations.length > 0) {
         // Get the most recent conversation
@@ -126,46 +96,15 @@ const ChatPage = () => {
   // Function to load messages from a specific conversation
   const loadConversationMessages = async (userId: string, convId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
+      // Use the API client which handles authentication automatically
+      const response = await api.getConversationMessages(userId, convId);
 
-      // Get API URL with HTTPS enforcement
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
-
-      // Ensure HTTPS in production environments to prevent mixed content errors
-      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
-        try {
-          const urlObj = new URL(apiUrl);
-          urlObj.protocol = 'https:';
-          apiUrl = urlObj.toString();
-        } catch (e) {
-          // If parsing fails, fall back to the default HTTPS URL
-          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
-        }
-      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
-        // If in production and URL doesn't start with https, force HTTPS
-        if (apiUrl.startsWith('http://')) {
-          apiUrl = apiUrl.replace('http://', 'https://');
-        } else {
-          apiUrl = 'https://' + apiUrl;
-        }
-      }
-
-      const response = await fetch(`${apiUrl}/api/chat/${userId}/conversation/${convId}/messages`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to load conversation messages:', response.statusText);
+      if (!response.success) {
+        console.error('Failed to load conversation messages:', response.error?.message);
         return;
       }
 
-      const data = await response.json();
-      const messages = data.messages;
+      const messages = response.data?.messages || [];
 
       if (messages && messages.length > 0) {
         // Format messages to match our Message interface
@@ -241,44 +180,14 @@ const ChatPage = () => {
         throw new Error('Unable to retrieve user information');
       }
 
-      // Get API URL with HTTPS enforcement
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+      // Use the API client to send the message
+      const response = await api.sendMessage(userId, inputValue, conversationId ? conversationId : undefined);
 
-      // Ensure HTTPS in production environments to prevent mixed content errors
-      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
-        try {
-          const urlObj = new URL(apiUrl);
-          urlObj.protocol = 'https:';
-          apiUrl = urlObj.toString();
-        } catch (e) {
-          // If parsing fails, fall back to the default HTTPS URL
-          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
-        }
-      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
-        // If in production and URL doesn't start with https, force HTTPS
-        if (apiUrl.startsWith('http://')) {
-          apiUrl = apiUrl.replace('http://', 'https://');
-        } else {
-          apiUrl = 'https://' + apiUrl;
-        }
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to get response from chat API');
       }
 
-      // Send the message to the backend
-      const response = await fetch(`${apiUrl}/api/chat/${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to get response from chat API');
-      }
-
-      const data: ChatResponse = await response.json();
+      const data: ChatResponse = response.data as ChatResponse;
 
       // Update conversation ID if this is the first message
       if (!conversationId) {
