@@ -1,6 +1,27 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+# Attempt to import ProxyHeadersMiddleware for handling HTTPS behind reverse proxy
+try:
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+except ImportError:
+    # Fallback for older versions
+    try:
+        from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+    except ImportError:
+        # If neither is available, define a minimal proxy headers middleware
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                # Handle common proxy headers for HTTPS
+                forwarded_proto = request.headers.get('X-Forwarded-Proto')
+                if forwarded_proto == 'https':
+                    # Modify the request URL scheme
+                    pass  # FastAPI handles this automatically in newer versions
+                response = await call_next(request)
+                return response
 from db import create_db_and_tables
 from routes import auth, tasks
 try:
@@ -13,11 +34,19 @@ from config import settings
 
 
 def create_app():
+    # Create the app with ProxyHeadersMiddleware first (if available)
     app = FastAPI(
         title="Todo Web Application API",
         description="API for the Todo Web Application with user authentication and task management",
         version="1.0.0"
     )
+
+    # Add Proxy Headers middleware to handle HTTPS behind reverse proxy (if available)
+    try:
+        app.add_middleware(ProxyHeadersMiddleware)
+    except NameError:
+        # ProxyHeadersMiddleware not available, continue without it
+        pass
 
     # Add CORS middleware
     app.add_middleware(

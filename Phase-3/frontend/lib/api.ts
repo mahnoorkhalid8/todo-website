@@ -16,7 +16,28 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+
+    // Ensure HTTPS in production environments to prevent mixed content errors
+    if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+      try {
+        const urlObj = new URL(baseUrl);
+        urlObj.protocol = 'https:';
+        baseUrl = urlObj.toString();
+      } catch (e) {
+        // If parsing fails, fall back to the default HTTPS URL
+        baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
+      }
+    } else if (!baseUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
+      // If in production and URL doesn't start with https, force HTTPS
+      if (baseUrl.startsWith('http://')) {
+        baseUrl = baseUrl.replace('http://', 'https://');
+      } else {
+        baseUrl = 'https://' + baseUrl;
+      }
+    }
+
+    this.baseUrl = baseUrl;
     this.token = null;
   }
 

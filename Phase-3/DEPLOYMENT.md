@@ -32,8 +32,10 @@ SESSION_SECRET=your_session_secret
 CONVERSATION_ENCRYPTION_KEY=your_conversation_encryption_key
 
 # Application URLs
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:3000  # Use HTTP for local development
+BACKEND_URL=http://localhost:8000    # Use HTTP for local development
+# For production deployments, use HTTPS:
+# NEXT_PUBLIC_API_URL=https://your-domain.com
 ```
 
 ## Local Deployment with Docker
@@ -100,9 +102,10 @@ The system will use the first available service. If neither is configured, it fa
 
 1. Use strong, unique secrets for all secret keys
 2. Enable HTTPS in production
-3. Implement proper rate limiting
-4. Sanitize all user inputs
-5. Regularly rotate API keys
+3. Ensure API URLs use HTTPS to prevent mixed content errors
+4. Implement proper rate limiting
+5. Sanitize all user inputs
+6. Regularly rotate API keys
 
 ## Scaling Recommendations
 

@@ -2,7 +2,7 @@
   "title": "Todo Web Application",
   "emoji": "✅",
   "description": "A modern todo application with user authentication and task management with due dates.",
-  "app_file": "backend/main.py",
+  "app_file": "app.py",
   "models": [],
   "tags": [
     "todo",

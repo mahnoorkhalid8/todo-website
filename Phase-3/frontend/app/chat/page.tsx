@@ -69,8 +69,30 @@ const ChatPage = () => {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
+      // Get API URL with HTTPS enforcement
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+
+      // Ensure HTTPS in production environments to prevent mixed content errors
+      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+        try {
+          const urlObj = new URL(apiUrl);
+          urlObj.protocol = 'https:';
+          apiUrl = urlObj.toString();
+        } catch (e) {
+          // If parsing fails, fall back to the default HTTPS URL
+          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
+        }
+      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
+        // If in production and URL doesn't start with https, force HTTPS
+        if (apiUrl.startsWith('http://')) {
+          apiUrl = apiUrl.replace('http://', 'https://');
+        } else {
+          apiUrl = 'https://' + apiUrl;
+        }
+      }
+
       // Get user's conversations
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}/conversations`, {
+      const response = await fetch(`${apiUrl}/api/chat/${userId}/conversations`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +129,29 @@ const ChatPage = () => {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}/conversation/${convId}/messages`, {
+      // Get API URL with HTTPS enforcement
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+
+      // Ensure HTTPS in production environments to prevent mixed content errors
+      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+        try {
+          const urlObj = new URL(apiUrl);
+          urlObj.protocol = 'https:';
+          apiUrl = urlObj.toString();
+        } catch (e) {
+          // If parsing fails, fall back to the default HTTPS URL
+          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
+        }
+      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
+        // If in production and URL doesn't start with https, force HTTPS
+        if (apiUrl.startsWith('http://')) {
+          apiUrl = apiUrl.replace('http://', 'https://');
+        } else {
+          apiUrl = 'https://' + apiUrl;
+        }
+      }
+
+      const response = await fetch(`${apiUrl}/api/chat/${userId}/conversation/${convId}/messages`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -197,8 +241,30 @@ const ChatPage = () => {
         throw new Error('Unable to retrieve user information');
       }
 
+      // Get API URL with HTTPS enforcement
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+
+      // Ensure HTTPS in production environments to prevent mixed content errors
+      if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+        try {
+          const urlObj = new URL(apiUrl);
+          urlObj.protocol = 'https:';
+          apiUrl = urlObj.toString();
+        } catch (e) {
+          // If parsing fails, fall back to the default HTTPS URL
+          apiUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
+        }
+      } else if (!apiUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
+        // If in production and URL doesn't start with https, force HTTPS
+        if (apiUrl.startsWith('http://')) {
+          apiUrl = apiUrl.replace('http://', 'https://');
+        } else {
+          apiUrl = 'https://' + apiUrl;
+        }
+      }
+
       // Send the message to the backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space'}/api/chat/${userId}`, {
+      const response = await fetch(`${apiUrl}/api/chat/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
