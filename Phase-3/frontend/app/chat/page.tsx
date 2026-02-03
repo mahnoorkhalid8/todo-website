@@ -76,6 +76,7 @@ const ChatPage = () => {
         return;
       }
 
+      // The response.data should now contain the conversations in the expected format
       const conversations = response.data?.conversations || [];
 
       if (conversations && conversations.length > 0) {
@@ -104,6 +105,7 @@ const ChatPage = () => {
         return;
       }
 
+      // The response.data should now contain the messages in the expected format
       const messages = response.data?.messages || [];
 
       if (messages && messages.length > 0) {

@@ -18,15 +18,22 @@ class ApiClient {
   constructor() {
     let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
 
+    // Remove any trailing slashes to ensure clean URL joining
+    baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
     // Ensure HTTPS in production environments to prevent mixed content errors
     if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
       try {
         const urlObj = new URL(baseUrl);
         urlObj.protocol = 'https:';
         baseUrl = urlObj.toString();
+        // Ensure no trailing slash after protocol change
+        baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       } catch (e) {
         // If parsing fails, fall back to the default HTTPS URL
         baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
+        // Ensure no trailing slash on fallback
+        baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       }
     } else if (!baseUrl.startsWith('https://') && process.env.NODE_ENV === 'production') {
       // If in production and URL doesn't start with https, force HTTPS
@@ -35,6 +42,8 @@ class ApiClient {
       } else {
         baseUrl = 'https://' + baseUrl;
       }
+      // Ensure no trailing slash after protocol change
+      baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     }
 
     this.baseUrl = baseUrl;
@@ -226,16 +235,46 @@ class ApiClient {
     });
   }
 
-  // Chat methods
-  async getConversations(userId: string) {
-    return this.request(`/api/chat/${userId}/conversations`);
+  // Chat methods with proper return types
+  async getConversations(userId: string): Promise<ApiResponse<{ conversations: any[] }>> {
+    const response = await this.request(`/api/chat/${userId}/conversations`);
+
+    // If successful, return the conversations from the response data
+    if (response.success) {
+      const responseData = response.data as any;
+      // Assume the backend returns { conversations: [...] }
+      return {
+        success: true,
+        data: { conversations: responseData?.conversations || [] }
+      };
+    }
+    // Return the original error response
+    return {
+      success: false,
+      error: response.error
+    };
   }
 
-  async getConversationMessages(userId: string, conversationId: number) {
-    return this.request(`/api/chat/${userId}/conversation/${conversationId}/messages`);
+  async getConversationMessages(userId: string, conversationId: number): Promise<ApiResponse<{ messages: any[] }>> {
+    const response = await this.request(`/api/chat/${userId}/conversation/${conversationId}/messages`);
+
+    // If successful, return the messages from the response data
+    if (response.success) {
+      const responseData = response.data as any;
+      // Assume the backend returns { messages: [...] }
+      return {
+        success: true,
+        data: { messages: responseData?.messages || [] }
+      };
+    }
+    // Return the original error response
+    return {
+      success: false,
+      error: response.error
+    };
   }
 
-  async sendMessage(userId: string, message: string, conversationId?: number) {
+  async sendMessage(userId: string, message: string, conversationId?: number): Promise<ApiResponse<any>> {
     const requestBody: {
       conversation_id?: number;
       message: string;
@@ -253,7 +292,7 @@ class ApiClient {
     });
   }
 
-  async getChatHealth() {
+  async getChatHealth(): Promise<ApiResponse<any>> {
     return this.request('/api/chat/health');
   }
 }
