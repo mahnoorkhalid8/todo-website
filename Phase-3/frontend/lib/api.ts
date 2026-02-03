@@ -249,10 +249,7 @@ class ApiClient {
       };
     }
     // Return the original error response
-    return {
-      success: false,
-      error: response.error
-    };
+    return response as ApiResponse<{ conversations: any[] }>;
   }
 
   async getConversationMessages(userId: string, conversationId: number): Promise<ApiResponse<{ messages: any[] }>> {
@@ -268,10 +265,7 @@ class ApiClient {
       };
     }
     // Return the original error response
-    return {
-      success: false,
-      error: response.error
-    };
+    return response as ApiResponse<{ messages: any[] }>;
   }
 
   async sendMessage(userId: string, message: string, conversationId?: number): Promise<ApiResponse<any>> {
