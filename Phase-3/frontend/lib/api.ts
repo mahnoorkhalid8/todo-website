@@ -16,32 +16,40 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    // Explicitly use the environment variable which should be set to local backend for development
-    // In production/deployment, this will use the production API
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    // Determine the base URL based on the environment
+    let baseUrl = '';
 
-    // If no env var is set, fallback to local development URL
-    if (!baseUrl) {
-      // Check if we're in a development environment
-      if (typeof window !== 'undefined') {
-        // Browser environment - check if we're running locally
-        const hostname = window.location.hostname;
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          baseUrl = 'http://127.0.0.1:8000'; // Local backend
-        } else {
-          // In production environment, use production API
-          baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
-        }
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      // Browser environment
+      const hostname = window.location.hostname;
+
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // For local development, use the local backend
+        baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       } else {
-        // Server environment (Node.js)
-        const isDev = process.env.NODE_ENV === 'development';
-        baseUrl = isDev ? 'http://127.0.0.1:8000' : 'https://mahnoorkhalid8-todo-bot.hf.space';
+        // For deployed environments, use the proxy route to avoid CORS issues
+        // This allows the frontend to communicate with the backend through the same domain
+        if (hostname.includes('vercel.app')) {
+          // For Vercel deployments, use the proxy API route
+          baseUrl = '/api/proxy';
+        } else {
+          // For other deployed environments, use the configured backend URL
+          baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+        }
       }
+    } else {
+      // Server environment (Node.js/SSR)
+      // For server-side rendering, we can use the direct backend URL
+      baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
     }
 
     // Ensure we have a proper URL format
     if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      baseUrl = 'http://' + baseUrl;
+      // If it's a relative path (like /api/proxy for Vercel), keep it as is
+      if (!baseUrl.startsWith('/')) {
+        baseUrl = 'http://' + baseUrl;
+      }
     }
 
     // Remove any trailing slashes to ensure clean URL joining
@@ -77,6 +85,14 @@ class ApiClient {
 
   // Helper method to properly join URL segments
   private joinUrl(base: string, endpoint: string): string {
+    // Check if we're using the proxy route (for Vercel deployments)
+    if (base === '/api/proxy') {
+      // For proxy routes, append the endpoint directly to the backend path
+      // The proxy will forward to the real backend
+      const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+      return `/api/proxy/${normalizedEndpoint}`;
+    }
+
     // Remove trailing slash from base if present
     const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
     // Remove leading slash from endpoint if present
@@ -278,12 +294,17 @@ class ApiClient {
 
   // Chat methods with proper return types
   async getConversations(userId: string): Promise<ApiResponse<{ conversations: any[] }>> {
+    console.log('Attempting to get conversations for user:', userId);
+    console.log('Base URL being used:', this.baseUrl);
+
     const response = await this.request(`/api/chat/${userId}/conversations`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
+    console.log('Get conversations response:', response);
 
     // If successful, return the conversations from the response data
     if (response.success) {
@@ -299,12 +320,17 @@ class ApiClient {
   }
 
   async getConversationMessages(userId: string, conversationId: number): Promise<ApiResponse<{ messages: any[] }>> {
+    console.log('Attempting to get messages for user:', userId, 'conversation:', conversationId);
+    console.log('Base URL being used:', this.baseUrl);
+
     const response = await this.request(`/api/chat/${userId}/conversation/${conversationId}/messages`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
+    console.log('Get messages response:', response);
 
     // If successful, return the messages from the response data
     if (response.success) {
@@ -331,7 +357,8 @@ class ApiClient {
       requestBody.conversation_id = conversationId;
     }
 
-    // Log the request for debugging
+    console.log('Attempting to send message for user:', userId);
+    console.log('Base URL being used:', this.baseUrl);
     console.log(`Sending chat message to: /api/chat/${userId}`, requestBody);
 
     try {
@@ -339,6 +366,8 @@ class ApiClient {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
+
+      console.log('Send message response:', response);
 
       // Log the response for debugging
       if (!response.success) {

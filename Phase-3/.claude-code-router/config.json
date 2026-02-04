@@ -8,7 +8,7 @@
     {  
       "name": "qwen",  
       "api_base_url": "https://portal.qwen.ai/v1/chat/completions",  
-      "api_key": "U0slqQm788FcRy7PS_sSntHC4VDlX2TsyUlLtjxO7Lrh4A4Z5tsxI5zKgS5MzKL0i-plIjFSJWOW3YtpDqjJ-Q",  
+      "api_key": "-C69ENT9N0FKzGSAJRY3Zr35KanFyzx04tgUvF1Bqos6datVTDpvr74SGEKHx82Gslb0oex_r2IbEXAai0WPrw",  
       "models": [  
         "qwen3-coder-plus",  
         "qwen3-coder-plus",  
