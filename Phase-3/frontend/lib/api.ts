@@ -16,22 +16,31 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    // Use local development URL when running locally, otherwise use production
-    let baseUrl = '';
+    // Prioritize NEXT_PUBLIC_API_URL from environment variables
+    // This allows easy configuration for different environments
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
-    // Check if we're in a development environment
-    if (typeof window !== 'undefined') {
-      // Browser environment
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        baseUrl = 'http://127.0.0.1:8000'; // Local backend
+    // If no env var is set, fallback to local development URL
+    if (!baseUrl) {
+      // Check if we're in a development environment
+      if (typeof window !== 'undefined') {
+        // Browser environment
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          baseUrl = 'http://127.0.0.1:8000'; // Local backend
+        } else {
+          baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space'; // Production fallback
+        }
       } else {
-        baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+        // Server environment (Node.js)
+        const isDev = process.env.NODE_ENV === 'development';
+        baseUrl = isDev ? 'http://127.0.0.1:8000' : 'https://mahnoorkhalid8-todo-bot.hf.space';
       }
-    } else {
-      // Server environment (Node.js)
-      const isDev = process.env.NODE_ENV === 'development';
-      baseUrl = isDev ? 'http://127.0.0.1:8000' : (process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space');
+    }
+
+    // Ensure we have a proper URL format
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = 'http://' + baseUrl;
     }
 
     // Remove any trailing slashes to ensure clean URL joining
