@@ -43,21 +43,35 @@ const ChatPage = () => {
       if (userStr) {
         const user = JSON.parse(userStr);
         userId = user.id;
+        console.log('Using user ID from localStorage user data:', userId);
       } else {
         // If user data isn't stored, decode the token to get user ID
         const tokenParts = token.split('.');
         if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
+          // Decode JWT payload (second part)
+          const base64Payload = tokenParts[1];
+          // Replace URL-safe base64 chars with standard base64 chars
+          const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+          const payload = JSON.parse(atob(base64));
           userId = payload.sub;
+          console.log('Using user ID from JWT token payload:', userId);
+        } else {
+          console.error('Invalid JWT token format');
+          return;
         }
       }
+
+      if (!userId) {
+        console.error('Could not extract user ID from token or user data');
+        return;
+      }
+
+      // Load existing conversations for the user
+      loadConversations(userId);
     } catch (error) {
       console.error('Error getting user ID:', error);
       return;
     }
-
-    // Load existing conversations for the user
-    loadConversations(userId);
   }, [router]);
 
   // Scroll to bottom of messages
@@ -171,13 +185,25 @@ const ChatPage = () => {
         if (userStr) {
           const user = JSON.parse(userStr);
           userId = user.id;
+          console.log('Using user ID from localStorage user data for message:', userId);
         } else {
           // If user data isn't stored, decode the token to get user ID
           const tokenParts = token.split('.');
           if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]));
+            // Decode JWT payload (second part)
+            const base64Payload = tokenParts[1];
+            // Replace URL-safe base64 chars with standard base64 chars
+            const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(atob(base64));
             userId = payload.sub;
+            console.log('Using user ID from JWT token payload for message:', userId);
+          } else {
+            throw new Error('Invalid JWT token format');
           }
+        }
+
+        if (!userId) {
+          throw new Error('Could not extract user ID from token or user data');
         }
       } catch (error) {
         console.error('Error getting user ID:', error);

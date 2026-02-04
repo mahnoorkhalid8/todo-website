@@ -16,20 +16,21 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    // Prioritize NEXT_PUBLIC_API_URL from environment variables
-    // This allows easy configuration for different environments
+    // Explicitly use the environment variable which should be set to local backend for development
+    // In production/deployment, this will use the production API
     let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
     // If no env var is set, fallback to local development URL
     if (!baseUrl) {
       // Check if we're in a development environment
       if (typeof window !== 'undefined') {
-        // Browser environment
+        // Browser environment - check if we're running locally
         const hostname = window.location.hostname;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
           baseUrl = 'http://127.0.0.1:8000'; // Local backend
         } else {
-          baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space'; // Production fallback
+          // In production environment, use production API
+          baseUrl = 'https://mahnoorkhalid8-todo-bot.hf.space';
         }
       } else {
         // Server environment (Node.js)
@@ -44,31 +45,6 @@ class ApiClient {
     }
 
     // Remove any trailing slashes to ensure clean URL joining
-    baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-
-    // Always ensure HTTPS in production environments to prevent mixed content errors
-    // Check if we're in production (browser or server)
-    const isProduction = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
-    const isBrowserAndHttps = typeof window !== 'undefined' && window.location?.protocol === 'https:';
-
-    // If in production, or if page is loaded over HTTPS, enforce HTTPS for API calls
-    if (isProduction || isBrowserAndHttps) {
-      if (baseUrl.startsWith('http://')) {
-        baseUrl = baseUrl.replace('http://', 'https://');
-      }
-      // If it doesn't start with https://, ensure it's a proper URL format
-      else if (!baseUrl.startsWith('https://')) {
-        // If it starts with http://, https://, or protocol-relative //, handle appropriately
-        if (baseUrl.startsWith('//')) {
-          baseUrl = 'https:' + baseUrl;
-        } else if (!baseUrl.startsWith('https://')) {
-          // If it's just a domain, prepend https://
-          baseUrl = 'https://' + baseUrl;
-        }
-      }
-    }
-
-    // Ensure no trailing slash after protocol change
     baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
     this.baseUrl = baseUrl;
@@ -117,14 +93,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = this.joinUrl(this.baseUrl, endpoint);
 
-    // Log the request for debugging
-    console.log('API Request:', {
-      url,
-      method: options.method || 'GET',
-      headers: options.headers,
-      endpoint
-    });
-
+    // Ensure Content-Type header is set properly
     const headers = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -136,6 +105,14 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Log the request for debugging with proper headers
+    console.log('API Request:', {
+      url,
+      method: options.method || 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': token ? '***' : 'none' }, // Don't log the actual token
+      endpoint
+    });
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -145,7 +122,21 @@ class ApiClient {
       // Log response status for debugging
       console.log('API Response status:', response.status, 'for', url);
 
-      const data = await response.json();
+      // Handle response based on content type
+      const contentType = response.headers.get('content-type');
+      let data;
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // For non-JSON responses, return text or empty object
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      }
 
       if (!response.ok) {
         console.error('API Error Response:', {
@@ -287,7 +278,12 @@ class ApiClient {
 
   // Chat methods with proper return types
   async getConversations(userId: string): Promise<ApiResponse<{ conversations: any[] }>> {
-    const response = await this.request(`/api/chat/${userId}/conversations`);
+    const response = await this.request(`/api/chat/${userId}/conversations`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     // If successful, return the conversations from the response data
     if (response.success) {
@@ -303,7 +299,12 @@ class ApiClient {
   }
 
   async getConversationMessages(userId: string, conversationId: number): Promise<ApiResponse<{ messages: any[] }>> {
-    const response = await this.request(`/api/chat/${userId}/conversation/${conversationId}/messages`);
+    const response = await this.request(`/api/chat/${userId}/conversation/${conversationId}/messages`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     // If successful, return the messages from the response data
     if (response.success) {
