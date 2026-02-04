@@ -16,7 +16,23 @@ class ApiClient {
   private token: string | null;
 
   constructor() {
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+    // Use local development URL when running locally, otherwise use production
+    let baseUrl = '';
+
+    // Check if we're in a development environment
+    if (typeof window !== 'undefined') {
+      // Browser environment
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        baseUrl = 'http://127.0.0.1:8000'; // Local backend
+      } else {
+        baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space';
+      }
+    } else {
+      // Server environment (Node.js)
+      const isDev = process.env.NODE_ENV === 'development';
+      baseUrl = isDev ? 'http://127.0.0.1:8000' : (process.env.NEXT_PUBLIC_API_URL || 'https://mahnoorkhalid8-todo-bot.hf.space');
+    }
 
     // Remove any trailing slashes to ensure clean URL joining
     baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;

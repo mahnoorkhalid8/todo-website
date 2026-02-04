@@ -106,7 +106,17 @@ export default function DashboardPage() {
       console.log('Tasks fetch response:', response);
 
       if (response.success) {
-        setTasks(Array.isArray(response.data) ? response.data : []);
+        // Properly handle the response data structure
+        // The API returns { success: true, data: { tasks: [...] } } or just the array
+        let tasksData = response.data;
+
+        // If the response has a tasks property, use that
+        if (tasksData && typeof tasksData === 'object' && 'tasks' in tasksData) {
+          tasksData = tasksData.tasks;
+        }
+
+        // Ensure tasksData is an array
+        setTasks(Array.isArray(tasksData) ? tasksData : []);
         setLastUpdated(new Date()); // Update the last updated timestamp
       } else {
         // Check if it's an unauthorized error
