@@ -1,0 +1,212 @@
+---
+title: "Todo Backend API"
+emoji: "📝"
+colorFrom: "blue"
+colorTo: "green"
+sdk: "docker"
+app_file: "Dockerfile"
+pinned: false
+---
+
+# Todo Web Application
+
+A modern full-stack todo web application with user authentication and task management functionality. This application allows users to register, authenticate, and manage their tasks in a responsive, secure interface.
+
+## Features
+
+- User registration and authentication
+- Secure JWT-based session management
+- Full task management (Create, Read, Update, Delete)
+- Task completion toggling
+- Optional due date for tasks
+- Toast notifications for user feedback
+- Responsive UI for mobile, tablet, and desktop
+- User data isolation (each user sees only their tasks)
+
+## Project Overview
+
+This is a monorepo using GitHub Spec-Kit for spec-driven development. The application consists of:
+- A Next.js 16+ frontend with TypeScript and Tailwind CSS
+- A Python FastAPI backend with SQLModel ORM
+- Neon Serverless PostgreSQL for data persistence
+- JWT-based authentication with Better Auth
+
+## Project Structure
+
+```
+todo-app/
+├── backend/              # Python FastAPI server
+│   ├── main.py           # FastAPI app entry point
+│   ├── models.py         # SQLModel database models
+│   ├── db.py             # Database connection management
+│   ├── routes/           # API route handlers
+│   ├── schemas/          # Pydantic request/response schemas
+│   ├── services/         # Business logic
+│   └── utils/            # Utility functions
+├── frontend/             # Next.js 16 application
+│   ├── app/              # App Router pages
+│   ├── components/       # Reusable UI components
+│   ├── lib/              # Shared utilities and API client
+│   └── styles/           # Global styles
+├── specs/                # Specification documents
+│   └── 1-todo-web-app/   # Feature specifications
+├── docker-compose.yml    # Container orchestration
+└── README.md            # This file
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Python 3.11+
+- Docker and Docker Compose
+- Git
+
+### Environment Setup
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd todo-app
+```
+
+2. Set up the backend:
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+3. Set up the frontend:
+```bash
+cd frontend
+npm install
+```
+
+4. Create environment files:
+```bash
+# In backend/
+cp .env.example .env
+
+# In frontend/
+cp .env.local.example .env.local
+```
+
+### Running the Application
+
+#### Option 1: Separate Terminals (Development)
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+uvicorn main:app --reload --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+#### Option 2: Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- Backend Documentation: http://localhost:8000/docs
+
+## Development Workflow
+
+1. Read spec: @specs/1-todo-web-app/spec.md
+2. Review architecture: @specs/1-todo-web-app/plan.md
+3. Check tasks: @specs/1-todo-web-app/tasks.md
+4. Implement backend: @backend/CLAUDE.md
+5. Implement frontend: @frontend/CLAUDE.md
+6. Test and iterate
+
+## API Documentation
+
+The backend API provides endpoints for:
+- Authentication: `/api/auth/` (register, login, logout)
+- Tasks: `/api/tasks/` (CRUD operations)
+
+Auto-generated documentation is available at http://localhost:8000/docs when the backend is running.
+
+## Commands
+
+- Frontend development: `cd frontend && npm run dev`
+- Backend development: `cd backend && uvicorn main:app --reload`
+- Run with Docker: `docker-compose up --build`
+- Run tests: See individual package.json and requirements.txt files
+
+## Natural Language Task Management
+
+The application includes an AI-powered chatbot that understands natural language commands and is enhanced with Google's Gemini API for more sophisticated interactions:
+
+### Task Creation
+- `add task cooking` - Creates a new task with title "cooking"
+- `add task buy groceries and pick up milk and bread` - Creates a task with description
+
+### Viewing Tasks
+- `show me my tasks` - Lists all your tasks
+- `what do I have to do?` - Shows pending tasks
+
+### Updating Tasks
+- `update task title of task 40 cook dinner` - Updates title of task #40
+- `update task description in task 44 cook biryani` - Updates description in task #44
+- `update task due date of task 40 02-02-2026` - Updates due date in task #40
+- `add task description in task 44 Updated description` - Adds description to existing task
+- `add task due date in task 40 2026-02-02` - Adds due date to existing task
+
+### Completing and Deleting Tasks
+- `mark task 1 as complete` - Marks task #1 as complete
+- `complete task 1` - Alternative command to complete task #1
+- `delete task 1` - Deletes task #1
+- `remove task 1` - Alternative command to delete task #1
+
+### AI Assistant Features
+- Powered by Google's Gemini API for natural, contextual conversations
+- Maintains conversation history for context-aware responses
+- Handles complex requests and follows up with clarifying questions when needed
+- Provides helpful feedback and error messages
+
+## Hugging Face Space Deployment
+
+⚠️ **Important**: This application is a full-stack web application with both frontend and backend components. Hugging Face Spaces is primarily designed for machine learning applications and demos, not for traditional web applications with separate frontend and backend services.
+
+When deployed to Hugging Face Spaces:
+- Only the backend API will be accessible
+- The Next.js frontend will not run properly in the Hugging Face environment
+- You can access the API at the root URL
+- API documentation is available at `/docs`
+
+For a complete deployment of both frontend and backend, consider using:
+- **Frontend**: Vercel, Netlify
+- **Backend**: Render, Railway, Heroku, or AWS
+
+To deploy the backend API to Hugging Face Spaces, use the following configuration:
+
+### Hugging Face Space Configuration
+
+The repository includes:
+- `app.py` - Entry point for Hugging Face deployment
+- `Dockerfile` - Container configuration
+- `requirements.txt` - Dependencies
+- `Procfile` - Process configuration for alternative platforms
+
+### Environment Variables for Deployment
+
+Set these environment variables/secrets in your deployment platform:
+- `DATABASE_URL` - PostgreSQL database connection string
+- `SECRET_KEY` - JWT secret key (at least 32 characters)
+- `ALGORITHM` - JWT algorithm (default: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
+- `GOOGLE_GEMINI_API_KEY` - Optional: Google Gemini API key for enhanced AI features
+- `GROQ_API_KEY` - Optional: Groq API key for enhanced AI features

@@ -1,0 +1,26 @@
+{
+  "LOG": true,
+  "LOG_LEVEL": "debug",
+  "Providers": [
+    {
+      "name": "kiro",
+      "api_base_url": "http://localhost:8000/v1/chat/completions",
+      "api_key": "my-super-secret-password-123",
+      "models": [
+        "claude-sonnet-4-5",
+        "claude-haiku-4-5",
+        "claude-opus-4-5"
+      ],
+      "transformer": {
+        "use": ["openrouter"]
+      }
+    }
+  ],
+  "Router": {
+    "default": "kiro,claude-sonnet-4-5",
+    "think": "kiro,claude-sonnet-4-5",
+    "background": "kiro,claude-sonnet-4-5",
+    "longContext": "kiro,claude-sonnet-4-5",
+    "webSearch": "kiro,claude-sonnet-4-5"
+  }
+}

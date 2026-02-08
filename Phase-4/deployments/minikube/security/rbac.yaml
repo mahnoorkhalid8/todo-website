@@ -1,0 +1,54 @@
+---
+# Service Account for Todo Chatbot Application
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: todo-chatbot-sa
+  namespace: todo-chatbot
+  labels:
+    app: todo-chatbot
+
+---
+# Role for Todo Chatbot Application
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: todo-chatbot-role
+  namespace: todo-chatbot
+  labels:
+    app: todo-chatbot
+rules:
+  # Allow reading ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading Secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  # Allow reading Services
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+  # Allow reading Pods (for health checks)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+# RoleBinding for Todo Chatbot Application
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: todo-chatbot-rolebinding
+  namespace: todo-chatbot
+  labels:
+    app: todo-chatbot
+subjects:
+  - kind: ServiceAccount
+    name: todo-chatbot-sa
+    namespace: todo-chatbot
+roleRef:
+  kind: Role
+  name: todo-chatbot-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,58 @@
+# Sample Kubernetes API Contract for Services
+# This would typically define the interface contracts between services
+
+openapi: 3.0.1
+info:
+  title: Todo Chatbot Kubernetes Service Contracts
+  description: API contracts for inter-service communication in the Kubernetes deployment
+  version: 1.0.0
+
+paths:
+  /api/health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    example: "2026-02-06T10:00:00Z"
+
+  /api/v1/chat:
+    post:
+      summary: Send chat message to backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "What can you help me with?"
+                userId:
+                  type: string
+                  example: "user-123"
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    example: "I can help you manage your tasks!"
+                  conversationId:
+                    type: string
+                    example: "conv-456"

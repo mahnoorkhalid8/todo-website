@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-config
+  namespace: todo-chatbot
+  labels:
+    app: postgresql
+data:
+  POSTGRES_DB: "todo_chatbot"
+  POSTGRES_USER: "postgres"
+  # Init script for database setup
+  init.sql: |
+    -- Create database if not exists
+    SELECT 'CREATE DATABASE todo_chatbot'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'todo_chatbot')\gexec
+
+    -- Connect to the database
+    \c todo_chatbot;
+
+    -- Enable UUID extension
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE todo_chatbot TO postgres;

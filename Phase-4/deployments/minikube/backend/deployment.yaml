@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: todo-chatbot
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: todo-chatbot-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: backend
+          image: todo-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            # From ConfigMap
+            - name: ALGORITHM
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: ALGORITHM
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: ACCESS_TOKEN_EXPIRE_MINUTES
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: ENVIRONMENT
+            # From Secrets
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: todo-chatbot-secrets
+                  key: jwt-secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: todo-chatbot-secrets
+                  key: jwt-secret
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: todo-chatbot-secrets
+                  key: groq-api-key
+                  optional: true
+            - name: GOOGLE_GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: todo-chatbot-secrets
+                  key: google-gemini-api-key
+                  optional: true
+            # Database URL constructed from ConfigMap and Secret
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(POSTGRES_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DATABASE_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: todo-chatbot-secrets
+                  key: postgres-password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+      restartPolicy: Always

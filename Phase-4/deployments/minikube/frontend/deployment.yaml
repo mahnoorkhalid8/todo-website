@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: todo-chatbot
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      serviceAccountName: todo-chatbot-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: frontend
+          image: todo-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          env:
+            # From ConfigMap
+            - name: NEXT_PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: NEXT_PUBLIC_API_URL
+            - name: NEXT_PUBLIC_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: NEXT_PUBLIC_API_BASE_URL
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: NODE_ENV
+            - name: NEXT_TELEMETRY_DISABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: NEXT_TELEMETRY_DISABLED
+            - name: HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: HOSTNAME
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: PORT
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+      restartPolicy: Always
