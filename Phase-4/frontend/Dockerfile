@@ -44,9 +44,11 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -u 1001 -S nextjs -G nodejs
 
 # Copy necessary files from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy public directory if it exists (create empty if not)
+RUN mkdir -p ./public
 
 # Create necessary directories
 RUN mkdir -p /app/.next/cache && \
